@@ -8,21 +8,25 @@ import pathlib
 from tqdm import tqdm
 import pandas as pd
 import numpy as np
+import time
 
-EXPORT_PATHNAME = "C:\\Users\\mj\\Google 드라이브\\0_크로스맵\\0. 기독일보\\지면배치연습\\200122\\"
+EXPORT_PATHNAME = "C:\\python_example\\Google_Automation\\output"
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--filename', required=False, default='test1.csv', type=str, help='csv file name to be processed')
     values = parser.parse_args()
+    c = input("The current output path: {}\nIf this is incorrect, enter n to exit the application.".format(EXPORT_PATHNAME))
+    if c.lower() == 'n':
+        exit(1)
     try:
-        df = pd.read_csv(values.filename, encoding='utf-8')
+        df = pd.read_csv(values.filename, names=['keyword', 'url', 'order'], skiprows=1, encoding='utf-8')
     except (FileNotFoundError, SyntaxError) as e:
         print(e)
         exit(1)
 
     df['order'].fillna(1, inplace=True)
-    df['order'] = df['order'].map(lambda x: str(x))
+    df['order'] = df['order'].map(lambda x: str(int(x)))
 
     for index, row in df.iterrows():
         keyword = row['keyword']

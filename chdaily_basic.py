@@ -2,7 +2,7 @@
     Christian Daily Web Scraper ver. 0.1
     web scraper for christian daily
     for personal use only
-    made by Hyungsuk Choi. All rights reserved.
+    made by Hyungsuk Choi. ⓒ All rights reserved.
 """
 
 from bs4 import BeautifulSoup
@@ -13,11 +13,15 @@ import os
 import pathlib
 from tqdm import tqdm
 import re
+from selenium import webdriver
+import selenium.common.exceptions
+import msvcrt
 
-EXPORT_PATHNAME = "C:\\Users\\mj\\Google 드라이브\\0_크로스맵\\0. 기독일보\\지면배치연습\\200121\\"
+EXPORT_PATHNAME = "C:\\python_example\\Google_Automation\\output"
 
 class Chdaily:
     original_url = "http://www.christiandaily.co.kr"
+    n = 0
 #    export_pathname = "C:\\Users\\mj\\Google 드라이브\\0_크로스맵\\0. 기독일보\\지면배치연습\\200121\\"
     
     def __init__(self, url, keyword, order, export_pathname):
@@ -37,17 +41,20 @@ class Chdaily:
 
     def get_soup(self):
         if self.url == "":
-            print("At least one url required!")
+            print("At least one url is required!")
             exit(1)
         else:
             try:
-                res = requests.get(self.url)
-            except requests.exceptions.RequestException as e:
+                driver = webdriver.Chrome('C:\\chromedriver.exe')
+                driver.implicitly_wait(3)
+                driver.get(self.url)
+#                res = requests.get(self.url, timeout=10)
+            except (TimeoutException, NoSuchElementException, WebDriverException) as e:
                 print(e)
                 exit(1)
 
             try:
-                soup = BeautifulSoup(res.content, 'html.parser')
+                soup = BeautifulSoup(driver.page_source, 'html.parser')
             except AttributeError as e:
                 print(e)
                 exit(1)
@@ -55,7 +62,6 @@ class Chdaily:
 
     def get_info(self, soup):
         body_texts = []
-        body_texts_with_tag = []
         if soup == "":
             print("soup not prepared! boil soup more :P")
             exit(1)
@@ -99,7 +105,7 @@ class Chdaily:
                         caption = txt.find('div', class_='caption').get_text()
                     except ValueError:
                         caption = "내용없음"
-                    print(img_url, caption)
+#                    print(img_url, caption)
                     self.pics.append([img_url, caption])
 
             for txt in body_texts_with_tag:
@@ -162,7 +168,8 @@ class Chdaily:
 
         file_name = '{}{}({}).txt'.format(self.order, self.keyword, self.paper_num, prec='.1')
         file_name = self.get_valid_filename(file_name)
-        with open(self.export_pathname + file_name, 'w', encoding='utf-8') as fout:
+        file_name = os.path.join(self.export_pathname, file_name)
+        with open(file_name, 'w', encoding='utf-8') as fout:
             fout.write(self.main_title + "\n\n")
             if self.sub_title != "":
                 fout.write(self.sub_title + "\n\n")
@@ -196,7 +203,9 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--url', required=True, type=str, help='url for web scraping')
     parser.add_argument('-o', '--order', required=False, default='1', type=str, help='order of article')
     values = parser.parse_args()
-
+    c = input("The current output path: {}\nIf this is incorrect, enter n to exit the application.".format(EXPORT_PATHNAME))
+    if c.lower() == 'n':
+        exit(1)
     chdaily1 = Chdaily(url=values.url, keyword=values.keyword, order=values.order, export_pathname=EXPORT_PATHNAME)
     soup = chdaily1.get_soup()
     chdaily1.get_info(soup)
