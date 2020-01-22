@@ -60,7 +60,7 @@ class Chdaily:
             exit(1)
         return soup
 
-    def get_bodytext(self, article):
+    def get_body_text(self, article):
         body_results = article.find_all('div', class_='article-txt')
         body_text_list = []
         for body_result in body_results:
@@ -69,7 +69,7 @@ class Chdaily:
             body_text_list.append(body_text)
         self.main_body = '\n'.join(body_text_list)
 
-    def get_reporter(self, article):
+    def get_reporter_name(self, article):
         try:
             self.reporter = article.div.p.a.text
         except AttributeError:
@@ -96,7 +96,7 @@ class Chdaily:
             img_name = image.div.text
             self.pics.append((img_url, img_name))
 
-    def get_main_text(self):
+    def merge_all_text(self):
         if self.main_title:
             self.main_text += self.main_title + '\n' + '\n'
         if self.sub_title:
@@ -110,11 +110,11 @@ class Chdaily:
         article = soup.find('article')
         self.get_main_title(article)
         self.get_sub_title(article)
-        self.get_reporter(article)
+        self.get_reporter_name(article)
         self.get_images(article)
-        self.get_bodytext(article)
-        self.get_main_text()
-        self.cal_num(self.main_text)
+        self.get_body_text(article)
+        self.merge_all_text()
+        self.count_pages(self.main_text)
 
 #         body_texts = []
 #         if soup == "":
@@ -186,7 +186,7 @@ class Chdaily:
             # if self.reporter != "":
             #     self.main_body = self.main_body[:-1] + "/" + self.reporter
 
-    def cal_num(self, s):
+    def count_pages(self, s):
         texts = s.split('\n')
         for text in texts:
             self.ch_num += len(text)
@@ -211,7 +211,7 @@ class Chdaily:
         print("The body of this article is: {}".format(self.main_body))
         print("The reporter of this article is: {}".format(self.reporter))
 
-    def export_to_txt(self):
+    def export_txt_file(self):
         if not os.path.isdir(self.export_pathname):
             os.makedirs(self.export_pathname)
         file_name = '{}{}({}).txt'.format(self.order, self.keyword, self.paper_num, prec='.1')
@@ -221,7 +221,7 @@ class Chdaily:
             fout.writelines(self.main_text)
            # fout.write("\nnumber of characters: {0}\nnumber of papers: {1}".format(self.ch_num, self.paper_num))
 
-    def download_pic(self):
+    def download_image(self):
         if not os.path.isdir(self.export_pathname):
             os.makedirs(self.export_pathname)
         for img_url, file_name in self.pics:
@@ -240,16 +240,18 @@ class Chdaily:
     def get_valid_filename(self, s):
         return re.sub(r'[\\/\:*"<>\|%\$\^&]', '', s)
 
+
 def main(**kwargs):
     url = kwargs['url']
     keyword = kwargs['keyword']
     order = kwargs['order']
     export_dir = kwargs['export_pathname']
-    chdaily1 = Chdaily(url, keyword, order, export_dir)
-    soup = chdaily1.get_soup()
-    chdaily1.get_info(soup)
-    chdaily1.export_to_txt()
-    chdaily1.download_pic()
+    mychdaily = Chdaily(url, keyword, order, export_dir)
+    soup = mychdaily.get_soup()
+    mychdaily.get_info(soup)
+    mychdaily.export_txt_file()
+    mychdaily.download_image()
+
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
