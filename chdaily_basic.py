@@ -17,11 +17,12 @@ from selenium import webdriver
 import selenium.common.exceptions
 import msvcrt
 
-EXPORT_PATHNAME = "C:\\python_example\\Google_Automation\\output"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 class Chdaily:
     original_url = "http://www.christiandaily.co.kr"
     n = 0
+    chdaily_garbages = ['Like Us on Facebook\n']
 #    export_pathname = "C:\\Users\\mj\\Google 드라이브\\0_크로스맵\\0. 기독일보\\지면배치연습\\200121\\"
     
     def __init__(self, url, keyword, order, export_pathname):
@@ -123,6 +124,12 @@ class Chdaily:
             except TypeError as e:
                 print(e)
             self.paper_num = self.ch_num_2/200
+            """
+            for garbage_text in self.chdaily_garbages:
+                if garbage_text in self.main_body:
+                    print('garbage text found!')
+                    self.main_body.replace(garbage_text, '')
+            """
             if self.reporter != "":
                 self.main_body = self.main_body[:-1] + "/" + self.reporter
 
@@ -203,10 +210,13 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--url', required=True, type=str, help='url for web scraping')
     parser.add_argument('-o', '--order', required=False, default='1', type=str, help='order of article')
     values = parser.parse_args()
-    c = input("The current output path: {}\nIf this is incorrect, enter n to exit the application.".format(EXPORT_PATHNAME))
-    if c.lower() == 'n':
-        exit(1)
-    chdaily1 = Chdaily(url=values.url, keyword=values.keyword, order=values.order, export_pathname=EXPORT_PATHNAME)
+    export_dir = os.path.join(BASE_DIR, 'output')
+
+#    c = input("The current output path: {}\nIf this is incorrect, enter n to exit the application.".format(export_dir))
+#    if c.lower() == 'n':
+#        exit(1)
+
+    chdaily1 = Chdaily(url=values.url, keyword=values.keyword, order=values.order, export_pathname=export_dir)
     soup = chdaily1.get_soup()
     chdaily1.get_info(soup)
     chdaily1.export_to_txt()

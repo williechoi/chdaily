@@ -4,3 +4,4 @@
 output
 myenv
 *.json
+__pycache__

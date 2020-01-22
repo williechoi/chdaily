@@ -10,15 +10,18 @@ import pandas as pd
 import numpy as np
 import time
 
-EXPORT_PATHNAME = "C:\\python_example\\Google_Automation\\output"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-f', '--filename', required=False, default='test1.csv', type=str, help='csv file name to be processed')
     values = parser.parse_args()
-    c = input("The current output path: {}\nIf this is incorrect, enter n to exit the application.".format(EXPORT_PATHNAME))
-    if c.lower() == 'n':
-        exit(1)
+    export_dir = os.path.join(BASE_DIR, 'output')
+
+#    c = input("The current output path: {}\nIf this is incorrect, enter n to exit the application.".format(export_dir))
+#    if c.lower() == 'n':
+#        exit(1)
+
     try:
         df = pd.read_csv(values.filename, names=['keyword', 'url', 'order'], skiprows=1, encoding='utf-8')
     except (FileNotFoundError, SyntaxError) as e:
@@ -32,8 +35,9 @@ if __name__ == "__main__":
         keyword = row['keyword']
         url = row['url']
         order = row['order']
-        chdaily1 = Chdaily(url=url, keyword=keyword, order=order, export_pathname=EXPORT_PATHNAME)
+        chdaily1 = Chdaily(url=url, keyword=keyword, order=order, export_pathname=export_dir)
         soup = chdaily1.get_soup()
         chdaily1.get_info(soup)
         chdaily1.export_to_txt()
         chdaily1.download_pic()
+        time.sleep(5)
