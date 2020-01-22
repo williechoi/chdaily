@@ -1,13 +1,7 @@
-from chdaily_basic import Chdaily
-from bs4 import BeautifulSoup
-import requests
+import chdaily_basic as cb
 import argparse
-from urllib.parse import urljoin, urlparse
 import os
-import pathlib
-from tqdm import tqdm
 import pandas as pd
-import numpy as np
 import time
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -35,9 +29,5 @@ if __name__ == "__main__":
         keyword = row['keyword']
         url = row['url']
         order = row['order']
-        chdaily1 = Chdaily(url=url, keyword=keyword, order=order, export_pathname=export_dir)
-        soup = chdaily1.get_soup()
-        chdaily1.get_info(soup)
-        chdaily1.export_to_txt()
-        chdaily1.download_pic()
+        cb.main(url=url, keyword=keyword, order=order, export_pathname=export_dir)
         time.sleep(5)
