@@ -22,7 +22,6 @@ BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 class Chdaily:
     original_url = "http://www.christiandaily.co.kr"
     chdaily_garbages = ['Like Us on Facebook\n']
-#    export_pathname = "C:\\Users\\mj\\Google 드라이브\\0_크로스맵\\0. 기독일보\\지면배치연습\\200121\\"
     
     def __init__(self, url, keyword, order, export_pathname):
         self.url = url
@@ -106,7 +105,7 @@ class Chdaily:
         if self.reporter:
             self.main_text = self.main_text[:-1] + '/' + self.reporter
 
-    def get_info(self, soup):
+    def drink(self, soup):
         article = soup.find('article')
         self.get_main_title(article)
         self.get_sub_title(article)
@@ -115,76 +114,6 @@ class Chdaily:
         self.get_body_text(article)
         self.merge_all_text()
         self.count_pages(self.main_text)
-
-#         body_texts = []
-#         if soup == "":
-#             print("soup not prepared! boil soup more :P")
-#             exit(1)
-#         else:
-#             # extract maintitle information from soup
-#             # print(soup)
-#             try:
-#                 self.main_title = soup.find('h1', {'class': 'article-ttl'}).get_text()
-#                 print("processing {}".format(self.main_title))
-#                 self.cal_num(self.main_title)
-#             except AttributeError:
-#                 pass
-#
-#             # extract subtitle information from soup
-#             try:
-#                 self.sub_title = soup.find('h2', {'class': 'article-sttl'}).get_text()
-#                 self.cal_num(self.sub_title)
-#             except AttributeError:
-#                 pass
-#
-#             # extract reporter information from soup
-#             self.reporter = soup.find('p', {'class': 'art-writer fl'}).get_text().split('(')[0].replace('기독일보', '').strip()
-#
-#             # extract maintext + mainimage from soup
-#             image_package = soup.find_all('div', {'class': 'article-txt'})[0].find_all('div', {'class': ['imageBox','imageLeft','imageRight']})
-#             body_texts_with_tag = soup.find_all('div', {'class': 'article-txt'})[0].find_all('p')
-#
-#             for txt in image_package:
-#                 img_url = txt.find('img')['src']
-#
-#
-#                 try:
-#                     pos = img_url.index("?")
-#                     img_url = img_url[:pos]
-#                 except ValueError:
-#                     pass
-#
-#                 if self.is_valid(img_url):
-#                     try:
-#                         caption = txt.find('div', class_='caption').get_text()
-#                     except ValueError:
-#                         caption = "내용없음"
-# #                    print(img_url, caption)
-#                     self.pics.append([img_url, caption])
-#
-#             for txt in body_texts_with_tag:
-#                 if txt.find('div', {'class': ['imageBox', 'imageLeft', 'imageRight']}):
-#                     txt.div.clear()
-#                     body_texts.append(txt.get_text().strip())
-#
-#                 else:
-#                     body_texts.append(txt.get_text().strip())
-#
-#             try:
-#                 for each_text in body_texts:
-#                     self.main_body += each_text + "\n"
-#                     self.cal_num(each_text)
-#             except TypeError as e:
-#                 print(e)
-
-            # """
-            # for garbage_text in self.chdaily_garbages:
-            #     if garbage_text in self.main_body:
-            #         print('garbage text found!')
-            #         self.main_body.replace(garbage_text, '')
-            # """
-            # if self.reporter != "":
-            #     self.main_body = self.main_body[:-1] + "/" + self.reporter
 
     def count_pages(self, s):
         texts = s.split('\n')
@@ -248,7 +177,7 @@ def main(**kwargs):
     export_dir = kwargs['export_pathname']
     mychdaily = Chdaily(url, keyword, order, export_dir)
     soup = mychdaily.get_soup()
-    mychdaily.get_info(soup)
+    mychdaily.drink(soup)
     mychdaily.export_txt_file()
     mychdaily.download_image()
 
