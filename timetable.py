@@ -17,6 +17,19 @@
 
 """
 
+from bs4 import BeautifulSoup
+import requests
+import argparse
+from urllib.parse import urljoin, urlparse
+import os
+import pathlib
+from tqdm import tqdm
+import re
+from selenium import webdriver
+import selenium.common.exceptions
+import msvcrt
+import csv
+
 
 TIMETABLES = {'CBS':
                   {'url': 'https://www.cbs.co.kr/tv/timetable/',
@@ -34,6 +47,73 @@ TIMETABLES = {'CBS':
                   {'url': 'https://www.cchannel.com/format/format_main',
                    'name': 'C채널'}
               }
+
+if __name__ == "__main__":
+    filename = 'timetable.csv'
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+    url = "http://www.cchannel.com/format/format_main?bs_date=2020-01-24"
+    filepath = os.path.join(BASE_DIR, filename)
+
+    with open(filepath, 'w', encoding='utf-8') as f:
+        csv_writer = csv.writer(f)
+
+        try:
+            driver = webdriver.Chrome('C:\\chromedriver.exe')
+            driver.implicitly_wait(3)
+            driver.get(url)
+        # res = requests.get(self.url, timeout=10)
+        except (TimeoutException, NoSuchElementException, WebDriverException) as e:
+            print(e)
+            exit(1)
+
+        try:
+            soup = BeautifulSoup(driver.page_source, 'lxml')
+        except AttributeError as e:
+            print(e)
+            exit(1)
+
+        rows = soup.find_all('tr')
+        for tr in rows:
+            data = []
+            # for extracting the table heading this will execute only once
+
+            for th in tr.find_all('th'):
+                data.append(th.text)
+
+            if data:
+                print("Inserting headers: {}".format(','.join(data)))
+                csv_writer.writerow(data)
+                continue
+
+            for td in tr.find_all('td', class_=['time', 'tit']):
+                if td['class'] == 'tit':
+                    piece = td.find('span', class_='txt1')
+                    print('yahoo')
+                    print(piece.text)
+                else:
+                    print('google')
+                    piece = td.text
+
+                data.append(piece)
+
+            if data:
+                print("Inserting rows: {}".format(','.join(data)))
+                csv_writer.writerow(data)
+
+
+            # for scraping the actual table data values
+
+            # for td in tr.find_all('td'):
+            #     data.append(td.span.text.strip())
+            #
+            # if data:
+            #     print("Inserting Table Data:{}".format(','.join(data)))
+            #     csv_writer.writerow(data)
+
+
+
+
+
 
 
 
