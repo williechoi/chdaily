@@ -15,8 +15,6 @@
     CGN TV: http://www.cgntv.net/center/programschedule.cgn?date={YYYY-MM-DD}
     (e.g., http://www.cgntv.net/center/programschedule.cgn?date=2020-01-22)
 
-"""
-"""
     unicode whitespaces: \xc2\xa0
 """
 
@@ -35,6 +33,7 @@ import csv
 from datetime import datetime
 from datetime import timedelta
 import pandas as pd
+import re
 
 
 TIMETABLES = {'CBS':
@@ -62,6 +61,7 @@ class TVtable:
     sub_url_mobile = "tv/timetable/?gubun=&sdate=&cdate={}"
     name = 'TV'
     is_00_to_24 = True
+    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     def __init__(self, now_date, filename='noname.csv'):
         self.now_date = datetime.strptime(now_date, "%Y-%m-%d").date()
@@ -71,11 +71,7 @@ class TVtable:
         self.data = []
         self.filename = filename
 
-    def get_soup(self):
-        if not self.now_url or not self.next_url:
-            print("url is not valid!")
-            exit(1)
-
+    def get_selenium_soup(self):
         try:
             driver = webdriver.Chrome('C:\\chromedriver.exe')
             driver.implicitly_wait(3)
@@ -83,6 +79,7 @@ class TVtable:
         except (TimeoutException, NoSuchElementException, WebDriverException) as e:
             print(e)
             exit(1)
+
         today_soup = BeautifulSoup(driver.page_source, 'lxml')
 
         try:
@@ -92,14 +89,45 @@ class TVtable:
         except (TimeoutException, NoSuchElementException, WebDriverException) as e:
             print(e)
             exit(1)
+
         tomorrow_soup = BeautifulSoup(driver.page_source, 'lxml')
+
+        return today_soup, tomorrow_soup
+
+
+    def get_requests_soup(self):
+        res = requests.get(self.now_url)
+        if res.status_code == 200:
+            html = res.text
+        else:
+            print("something wrong")
+            exit(1)
+        today_soup = BeautifulSoup(html, 'lxml')
+
+        res = requests.get(self.next_url)
+        if res.status_code == 200:
+            html = res.text
+        else:
+            print("something wrong")
+            exit(1)
+        tomorrow_soup = BeautifulSoup(html, 'lxml')
+
+        return today_soup, tomorrow_soup
+
+    def get_soup(self):
+        if not self.now_url or not self.next_url:
+            print("url is not valid!")
+            exit(1)
+
+        # today_soup, tomorrow_soup = self.get_requests_soup()
+        today_soup, tomorrow_soup = self.get_selenium_soup()
 
         return today_soup, tomorrow_soup
 
     def drink(self, soup):
         pass
 
-    def export_to_csv(self):
+    def get_dataframe(self):
         if self.is_00_to_24:
             today_df = self.data[0]
             tomorrow_df = self.data[1]
@@ -109,7 +137,16 @@ class TVtable:
 
         else:
             df = self.data[0]
+        print('a')
+        df = df.groupby('hour').agg({self.name: '\n'.join})
+        print(df.head())
+        df.reset_index(inplace=True)
+        df.rename(columns={'index': 'hour'}, inplace=True)
+        df['hour'] = df['hour'].apply(lambda x: str(x) + ':00')
+        return df
 
+    def export_to_csv(self, df):
+        filepath = os.path.join(self.BASE_DIR, self.filename)
         df.to_csv(filepath, index=False)
 
 
@@ -126,25 +163,23 @@ class CBSTVtable(TVtable):
 
     def drink(self, soups):
         soup = soups[0]
-        rows = soup.find_all('tr')
+        table = soup.find('div', id='time_data')
+        rows = table.find_all('tr')
         all_programs = []
         for tr in rows:
             hour = ""
             minute = ""
+            # print(tr)
 
             for td in tr.find_all('td', class_=['sc_time', 'sc_title']):
                 if td['class'][0] == 'sc_time':
-                    print(td)
                     try:
-                        hour = int(td.text.split(':')[0])
-                        if hour >= 24:
-                            hour = hour - 24
-                        minute = td.text.split(':')[1]
+                        hour = int(td.text.split(':')[0].strip())
+                        minute = td.text.split(':')[1].strip()
                     except IndexError as e:
                         print(e)
                         exit(1)
                 elif td['class'][0] == 'sc_title':
-                    print(td)
                     if td.has_attr('a'):
                         prog_name = td.a.text.strip()
                     else:
@@ -176,13 +211,13 @@ class CTSTVtable(TVtable):
                 minute = ""
 
                 for li in tr.find_all('li'):
-                    # print(td)
+                    # print(li)
                     for div in li.find_all('div'):
                         if div['class'][0] == 'time':
                             # print('processing time variable')
                             try:
-                                hour = int(div.text.split(':')[0])
-                                minute = div.text.split(':')[1]
+                                hour = int(div.text.split(':')[0].strip())
+                                minute = div.text.split(':')[1].strip()
                             except IndexError as e:
                                 print(e)
                                 exit(1)
@@ -195,13 +230,10 @@ class CTSTVtable(TVtable):
                                 prog_name = 'error'
 
                             program = '{} {}'.format(minute, prog_name)
-                            # print(prog_name)
                             all_programs.append([hour, program])
 
                         else:
                             continue
-
-
 
             self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
 
@@ -244,8 +276,10 @@ class CGNTVtable(TVtable):
                         except AttributeError as e:
                             prog_name = td.text.strip()
 
+                        prog_name = re.sub(r"[\t\n\r(HD)]", "", prog_name, flags=re.UNICODE)
+
                         if 'HD' in prog_name:
-                            print('HD found')
+                            # print('HD found')
                             prog_name.replace('HD', '').strip()
 
                         program = '{} {}'.format(minute, prog_name)
@@ -276,10 +310,10 @@ class GoodTVtable(TVtable):
             hour = ""
             minute = ""
 
-            print(tr)
+            # print(tr)
             for td in tr.find_all('td'):
                 if td['class'][0] == 'schedul_con2':
-                    print(td)
+                    # print(td)
                     try:
                         hour = int(td.text.split(':')[0])
                         if hour >= 24:
@@ -289,14 +323,12 @@ class GoodTVtable(TVtable):
                         print(e)
                         exit(1)
                 elif td['class'][0] == 'schedul_con' and td.text != "":
-                    print(td)
+                    # print(td)
                     prog_name = td.text.strip()
                     program = '{} {}'.format(minute, prog_name)
-                    # print(program)
                     all_programs.append([hour, program])
 
         self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-
 
 
 class CchannelTVtable(TVtable):
@@ -345,39 +377,59 @@ class CchannelTVtable(TVtable):
 
             self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
 
-def main():
-    # goodtv = GoodTVtable("2020-01-23")
-    # soups = goodtv.get_soup()
-    # goodtv.drink(soups)
-    # goodtv.export_to_csv()
-    #
-    # ctstv = CTSTVtable("2020-01-23")
-    # soups = ctstv.get_soup()
-    # ctstv.drink(soups)
-    # ctstv.export_to_csv()
 
-    cbstv = CBSTVtable("2020-01-23")
-    soups = cbstv.get_soup()
-    cbstv.drink(soups)
-    cbstv.export_to_csv()
+def export_TVtable(*args, **kwargs):
+    is_first = True
+    today = kwargs['today']
+    for df in args:
+        if is_first:
+            is_first = False
+            final_df = df
+        else:
+            final_df = pd.merge(df, final_df, on='hour', how='outer')
 
-    cgntv = CGNTVtable("2020-01-23")
+    final_df = pd.concat([final_df.iloc[4:, :], final_df.iloc[:4, :]], axis=0)
+
+    final_df.to_excel(f'TVtable_{today}.xlsx', encoding='utf-16', sheet_name='sheet1')
+    final_df.to_csv(f'TVtable_{today}.csv', encoding='utf-8')
+
+
+def TVtable(today):
+    goodtv = GoodTVtable(today)
+    soups = goodtv.get_soup()
+    goodtv.drink(soups)
+    goodtv_df = goodtv.get_dataframe()
+    # goodtv.export_to_csv(goodtv_df)
+
+    ctstv = CTSTVtable(today)
+    soups = ctstv.get_soup()
+    ctstv.drink(soups)
+    cts_df = ctstv.get_dataframe()
+    # ctstv.export_to_csv(cts_df)
+
+    cgntv = CGNTVtable(today)
     soups = cgntv.get_soup()
     cgntv.drink(soups)
-    cgntv.export_to_csv()
+    cgn_df = cgntv.get_dataframe()
+    # cgntv.export_to_csv(cgn_df)
 
-    cchanneltv = CchannelTVtable("2020-01-23")
+    cchanneltv = CchannelTVtable(today)
     soups = cchanneltv.get_soup()
     cchanneltv.drink(soups)
-    cchanneltv.export_to_csv()
+    cchannel_df = cchanneltv.get_dataframe()
+    # cchanneltv.export_to_csv(cchannel_df)
+
+    cbstv = CBSTVtable(today)
+    soups = cbstv.get_soup()
+    cbstv.drink(soups)
+    cbs_df = cbstv.get_dataframe()
+    # cbstv.export_to_csv(cbs_df)
+
+    export_TVtable(goodtv_df, cgn_df, cts_df, cbs_df, cchannel_df, today=today)
 
 
 if __name__ == "__main__":
-    filename = 'timetable.csv'
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-    url = "http://www.cchannel.com/format/format_main?bs_date=2020-01-24"
-    filepath = os.path.join(BASE_DIR, filename)
-    main()
+    TVtable("2020-01-23")
     #
     # goodtv = GoodTVtable("2020-01-23")
     #

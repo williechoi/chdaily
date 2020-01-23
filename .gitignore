@@ -5,3 +5,6 @@ output
 myenv
 *.json
 __pycache__
+*.xlsx
+*.ipynb
+ipynb_checkpoints
