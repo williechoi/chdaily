@@ -16,6 +16,7 @@ import re
 from selenium import webdriver
 import selenium.common.exceptions
 import msvcrt
+import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
@@ -31,6 +32,7 @@ class Chdaily:
         self.ch_num = 0
         self.ch_num_2 = 0
         self.paper_num = 0.0
+        self.article_number = self.url.split('/')[-1].split('-')[-1].split('.')[0]
         self.main_body = ""
         self.main_title = ""
         self.sub_title = ""
@@ -149,6 +151,7 @@ class Chdaily:
         with open(file_name, 'w', encoding='utf-8') as fout:
             fout.writelines(self.main_text)
            # fout.write("\nnumber of characters: {0}\nnumber of papers: {1}".format(self.ch_num, self.paper_num))
+        logging.warning("[{}] keyword: {} is now scraped".format(self.article_number, self.keyword))
 
     def download_image(self):
         if not os.path.isdir(self.export_pathname):
@@ -175,6 +178,8 @@ def main(**kwargs):
     keyword = kwargs['keyword']
     order = kwargs['order']
     export_dir = kwargs['export_pathname']
+    logging.basicConfig(filename='tmp.log', format='%(asctime)s %(message)s')
+    logging.warning('----------- web scraping started -------------')
     mychdaily = Chdaily(url, keyword, order, export_dir)
     soup = mychdaily.get_soup()
     mychdaily.drink(soup)
