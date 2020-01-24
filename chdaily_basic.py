@@ -82,7 +82,7 @@ class Chdaily:
         with open(file_name, 'w', encoding='utf-8') as fout:
             fout.writelines(self.main_text)
            # fout.write("\nnumber of characters: {0}\nnumber of papers: {1}".format(self.ch_num, self.paper_num))
-        logging.warning("[{}] keyword: {} is now scraped".format(self.article_number, self.keyword))
+        logging.warning("[{}] {} keyword: {} is now scraped".format(self.article_number, self.name, self.keyword))
 
     def get_valid_filename(self, s):
         return re.sub(r'[\\/\:*"<>\|%\$\^&\n]', '', s)
@@ -160,6 +160,7 @@ class Chdaily_US(Chdaily):
 
     def __init__(self, url, keyword, order, export_dir):
         super().__init__(url, keyword, order, export_dir)
+        self.article_number = self.url.split('/')[4]
 
     def get_body_text(self, article):
         body_results = article.find_all('div', class_='article-txt')
@@ -194,7 +195,7 @@ class Chdaily_US(Chdaily):
             self.sub_title = None
 
     def get_images(self, article):
-        img_tags = article.find_all('div', class_=['imageBox', 'imageLeft', 'imageRight','article-layer'])
+        img_tags = article.find_all('div', class_=['imageBox', 'imageLeft', 'imageRight', 'article-layer'])
         for img_tag in img_tags:
             img_url = img_tag.img['src'].split('?')[0]
             if not self.is_absolute(img_url):
@@ -262,7 +263,7 @@ class Chdaily_KR(Chdaily):
             img_url = img_tag.img['src'].split('?')[0]
             if not self.is_absolute(img_url):
                 img_url = urljoin(self.original_url, img_url)
-            img_name = img_tag.div.text
+            img_name = img_tag.get_text()
             self.pics.append((img_url, img_name))
 
     def merge_all_text(self):

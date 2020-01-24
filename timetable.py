@@ -459,10 +459,3 @@ if __name__ == "__main__":
                         default=datetime.today().strftime("%Y-%m-%d"), help='date to extract information')
     values = parser.parse_args()
     TVtable(values.date)
-
-
-
-
-
-
-
