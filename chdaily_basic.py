@@ -55,7 +55,7 @@ class Chdaily:
             exit(1)
 
         try:
-            soup = BeautifulSoup(driver.page_source, 'html.parser')
+            soup = BeautifulSoup(driver.page_source, 'lxml')
         except AttributeError as e:
             print(e)
             exit(1)
