@@ -15,43 +15,18 @@
     CGN TV: http://www.cgntv.net/center/programschedule.cgn?date={YYYY-MM-DD}
     (e.g., http://www.cgntv.net/center/programschedule.cgn?date=2020-01-22)
 
-    unicode whitespaces: \xc2\xa0
 """
 
 from bs4 import BeautifulSoup
 import requests
 import argparse
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urljoin
 import os
-import pathlib
-from tqdm import tqdm
-import re
 from selenium import webdriver
-import selenium.common.exceptions
-import msvcrt
-import csv
 from datetime import datetime
 from datetime import timedelta
 import pandas as pd
 import re
-
-
-TIMETABLES = {'CBS':
-                  {'url': 'https://www.cbs.co.kr/tv/timetable/',
-                   'name': 'CBS TV'},
-              'CTS':
-                  {'url': 'https://www.cts.tv/table',
-                   'name': 'CTS 기독교TV'},
-              'CGN':
-                  {'url': 'http://www.cgntv.net/center/programschedule.cgn?mode=tv',
-                   'name': 'CGN TV'},
-              'GoodTV':
-                  {'url': 'http://tv.goodtv.co.kr/schedule.asp',
-                   'name': 'GoodTV'},
-              'Cchannel':
-                  {'url': 'https://www.cchannel.com/format/format_main',
-                   'name': 'C채널'}
-              }
 
 
 class TVtable:
@@ -72,23 +47,14 @@ class TVtable:
         self.filename = filename
 
     def get_selenium_soup(self):
-        try:
-            driver = webdriver.Chrome('C:\\chromedriver.exe')
-            driver.implicitly_wait(3)
-            driver.get(self.now_url)
-        except (TimeoutException, NoSuchElementException, WebDriverException) as e:
-            print(e)
-            exit(1)
+        driver = webdriver.Chrome('C:\\chromedriver.exe')
+        driver.implicitly_wait(3)
+        driver.get(self.now_url)
 
         today_soup = BeautifulSoup(driver.page_source, 'lxml')
 
-        try:
-            driver = webdriver.Chrome('C:\\chromedriver.exe')
-            driver.implicitly_wait(3)
-            driver.get(self.next_url)
-        except (TimeoutException, NoSuchElementException, WebDriverException) as e:
-            print(e)
-            exit(1)
+        driver.implicitly_wait(3)
+        driver.get(self.next_url)
 
         tomorrow_soup = BeautifulSoup(driver.page_source, 'lxml')
 
@@ -431,10 +397,6 @@ class CchannelTVtable(TVtable):
                                 all_programs.append([hour, program])
                     else:
                         continue
-
-                # for hour, prog_name in programs:
-                #     print("{} {}".format(hour, prog_name))
-                #     # csv_writer.writerow(data)
 
             self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
             is_first_soup = False
