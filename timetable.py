@@ -57,6 +57,7 @@ class TVtable:
         driver.get(self.next_url)
 
         tomorrow_soup = BeautifulSoup(driver.page_source, 'lxml')
+        driver.close()
 
         return today_soup, tomorrow_soup
 
@@ -424,7 +425,7 @@ def export_TVtable(*args, **kwargs):
     final_df.to_csv(f'TVtable_{today}.csv', encoding='utf-8', index=False)
 
 
-def TVtable(today):
+def main(today):
     goodtv = GoodTVtable(today)
     soups = goodtv.get_soup()
     goodtv.drink(soups)
@@ -458,4 +459,4 @@ if __name__ == "__main__":
     parser.add_argument('-d', '--date', required=False, type=str,
                         default=datetime.today().strftime("%Y-%m-%d"), help='date to extract information')
     values = parser.parse_args()
-    TVtable(values.date)
+    main(values.date)

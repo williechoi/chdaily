@@ -20,17 +20,17 @@ import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHDAILY_URLS = {
-    "KR": "www.christiandaily.co.kr",
-    "US": "kr.christianitydaily.com"
+    "KR": "http://www.christiandaily.co.kr",
+    "US": "http://kr.christianitydaily.com"
 }
-
+EMAIL_RE = re.compile(r'\({0,1}[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}\){0,1}', flags=re.UNICODE)
 
 class Chdaily:
     original_url = "http://www.christiandaily.co.kr"
     country = "Earth"
     name = "기독일보"
 
-    def __init__(self, url, keyword, order, export_dir):
+    def __init__(self, url, keyword, order, export_dir=os.path.join(BASE_DIR, 'output')):
         self.url = url
         self.keyword = keyword
         self.order = str(order) + "_"
@@ -70,6 +70,7 @@ class Chdaily:
         except AttributeError as e:
             print(e)
             exit(1)
+        driver.close()
 
         return soup
 
@@ -81,7 +82,6 @@ class Chdaily:
         file_name = os.path.join(self.export_dir, file_name)
         with open(file_name, 'w', encoding='utf-8') as fout:
             fout.writelines(self.main_text)
-           # fout.write("\nnumber of characters: {0}\nnumber of papers: {1}".format(self.ch_num, self.paper_num))
         logging.warning("[{}] {} keyword: {} is now scraped".format(self.article_number, self.name, self.keyword))
 
     def get_valid_filename(self, s):
@@ -158,20 +158,20 @@ class Chdaily_US(Chdaily):
     country = "USA"
     name = "미주 기독일보"
 
-    def __init__(self, url, keyword, order, export_dir):
+    def __init__(self, url, keyword, order, export_dir=os.path.join(BASE_DIR, 'output')):
         super().__init__(url, keyword, order, export_dir)
         self.article_number = self.url.split('/')[4]
 
     def get_body_text(self, article):
-        body_results = article.find_all('div', class_='article-txt')
+        body_result = article.find('div', class_='article-txt')
         body_text_list = []
-        for body_result in body_results:
-            body_elements = body_result.find_all('p')
-            for body in body_elements:
-                if 'Like Us' in body.text or body.text == u'\xa0':
-                    continue
-                sentence = body.text.strip().replace('\n', '')
-                body_text_list.append(sentence)
+
+        body_elements = body_result.find_all('p')
+        for body in body_elements:
+            if 'Like Us' in body.text or body.text == u'\xa0':
+                continue
+            sentence = body.text.strip().replace('\n', '')
+            body_text_list.append(sentence)
 
         self.main_body = '\n'.join(body_text_list)
 
@@ -181,6 +181,11 @@ class Chdaily_US(Chdaily):
             self.reporter = article.find('p', class_='art-writer fl').get_text().strip()
         except AttributeError:
             self.reporter = None
+        if re.search(EMAIL_RE, self.reporter):
+            self.reporter = re.sub(EMAIL_RE, "", self.reporter).strip()
+
+        if not self.reporter.endswith('기자'):
+            self.reporter = self.reporter + ' 기자'
 
     def get_main_title(self, article):
         try:
@@ -219,20 +224,20 @@ class Chdaily_KR(Chdaily):
     country = "South Korea"
     name = "한국 기독일보"
     
-    def __init__(self, url, keyword, order, export_dir):
+    def __init__(self, url, keyword, order, export_dir=os.path.join(BASE_DIR, 'output')):
         super().__init__(url, keyword, order, export_dir)
 
     def get_body_text(self, article):
-        body_results = article.find_all('div', class_='article-txt')
+        body_result = article.find('div', class_='article-txt')
         # [s.extract() for s in body_results('strong')]
         body_text_list = []
-        for body_result in body_results:
-            body_elements = body_result.find_all('p')
-            for body in body_elements:
-                if body.text == u'\xa0':
-                    continue
-                sentence = body.text.strip().replace('\n', '')
-                body_text_list.append(sentence)
+
+        body_elements = body_result.find_all('p')
+        for body in body_elements:
+            if body.text == u'\xa0':
+                continue
+            sentence = body.text.strip().replace('\n', '')
+            body_text_list.append(sentence)
 
         self.main_body = '\n'.join(body_text_list)
 
@@ -242,6 +247,8 @@ class Chdaily_KR(Chdaily):
             self.reporter = article.find('p', class_='art-writer fl').get_text().strip()
         except AttributeError:
             self.reporter = None
+        if re.search(EMAIL_RE, self.reporter):
+            self.reporter = re.sub(EMAIL_RE, "", self.reporter).strip()
 
     def get_main_title(self, article):
         try:
@@ -281,16 +288,15 @@ def main(**kwargs):
     url = kwargs['url']
     keyword = kwargs['keyword']
     order = kwargs['order']
-    export_dir = kwargs['export_dir']
     logging.basicConfig(filename='tmp.log', format='%(asctime)s %(message)s')
     logging.warning('----------- web scraping started -------------')
 
     main_url = urlparse(url).netloc
 
-    if main_url == CHDAILY_URLS['KR']:
-        mychdaily = Chdaily_KR(url, keyword, order, export_dir)
-    elif main_url == CHDAILY_URLS['US']:
-        mychdaily = Chdaily_US(url, keyword, order, export_dir)
+    if main_url == urlparse(CHDAILY_URLS['KR']).netloc:
+        mychdaily = Chdaily_KR(url, keyword, order)
+    elif main_url == urlparse(CHDAILY_URLS['US']).netloc:
+        mychdaily = Chdaily_US(url, keyword, order)
     else:
         print("You entered wrong URL. please try again!")
         exit(1)
@@ -307,5 +313,4 @@ if __name__ == "__main__":
     parser.add_argument('-u', '--url', required=True, type=str, help='url for web scraping')
     parser.add_argument('-o', '--order', required=False, default='1', type=str, help='order of article')
     values = parser.parse_args()
-    export_dir = os.path.join(BASE_DIR, 'output')
-    main(url=values.url, keyword=values.keyword, order=values.order, export_dir=export_dir)
+    main(url=values.url, keyword=values.keyword, order=values.order)
