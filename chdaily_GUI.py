@@ -80,11 +80,11 @@ def open_TVtable():
     c_cchannel = tk.Checkbutton(tv_lower_frame, text="Cchannel", variable=is_cchannel, onvalue=1, offvalue=0, anchor='sw')
     c_cchannel.place(relx=0.04, rely=0.76, relwidth=cbx_width, relheight=cbx_height)
 
-    btn_show = tk.Button(tvtable_window, text="실행", command=(lambda: run_timetable(year=yr_entry.get(), month=mon_entry.get(), day=day_entry.get())))
-    btn_show.place(relx=0.76, rely=0.45, relwidth=0.2, relheight=0.1)
+    show_btn = tk.Button(tvtable_window, text="실행", command=(lambda: run_timetable(year=yr_entry.get(), month=mon_entry.get(), day=day_entry.get())))
+    show_btn.place(relx=0.76, rely=0.45, relwidth=0.2, relheight=0.1)
 
-    btn_exit = tk.Button(tvtable_window, text="창 닫기", command=tvtable_window.destroy)
-    btn_exit.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
+    close_btn = tk.Button(tvtable_window, text="창 닫기", command=tvtable_window.destroy)
+    close_btn.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
 
 
 def open_chdaily():
@@ -113,11 +113,11 @@ def open_chdaily():
     order_entry = tk.Entry(chdaily_window, text='순서 입력')
     order_entry.place(relx=0.3, rely=0.6, relwidth=entry_width, relheight=entry_height)
 
-    btn_show = tk.Button(chdaily_window, text="실행", command=(lambda: run_chdaily_basic(url=url_entry.get(), kw=kw_entry.get(), order=order_entry.get())))
-    btn_show.place(relx=0.76, rely=0.4, relwidth=0.2, relheight=0.1)
+    show_btn = tk.Button(chdaily_window, text="실행", command=(lambda: run_chdaily_basic(url=url_entry.get(), kw=kw_entry.get(), order=order_entry.get())))
+    show_btn.place(relx=0.76, rely=0.4, relwidth=0.2, relheight=0.1)
 
-    btn_exit = tk.Button(chdaily_window, text="창 닫기", command=chdaily_window.destroy)
-    btn_exit.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
+    close_btn = tk.Button(chdaily_window, text="창 닫기", command=chdaily_window.destroy)
+    close_btn.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
 
 
 def run_timetable(year, month, day):
