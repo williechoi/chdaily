@@ -23,7 +23,7 @@ class Sermon:
 
     filename = 'sermon.csv'
 
-    def __init__(self):
+    def __init__(self, page_num, isduplicateallowed):
         self.data = []
         self.sermon_files = []
         self.sermon_date = "2000-01-01"
@@ -33,7 +33,8 @@ class Sermon:
         self.sub_title = ""
         self.main_body = ""
         self.main_text = ""
-
+        self.page_num = page_num
+        self.isduplicateallowed = isduplicateallowed
 
     def export_to_hwp(self):
         if not os.path.isdir(self.export_dir):
@@ -91,7 +92,7 @@ class Sermon:
             driver.close()
             yield soup
 
-    def drink(self, num_of_soup=1):
+    def drink(self):
         pass
 
     def scrap_sermon(self, sermon_url):
@@ -158,11 +159,11 @@ class MannaSermon(Sermon):
     filename = "manna.csv"
     export_dir = os.path.join(base_dir, 'sermon', pastor_name)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page_num, isduplicateallowed):
+        super().__init__(page_num, isduplicateallowed)
 
-    def drink(self, num_of_soup=1):
-        for soup in self.gen_soup(num_of_soup):
+    def drink(self):
+        for soup in self.gen_soup(self.page_num):
             table = soup.find('table', class_='tbl_news_2')
             tbody = table.find('tbody')
             rows = tbody.find_all('tr')
@@ -210,11 +211,11 @@ class FullGospelSermon(Sermon):
     filename = "fullgospel.csv"
     export_dir = os.path.join(base_dir, 'sermon', pastor_name)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page_num, isduplicateallowed):
+        super().__init__(page_num, isduplicateallowed)
 
-    def drink(self, num_of_soup=1):
-        for soup in self.gen_soup(num_of_soup):
+    def drink(self):
+        for soup in self.gen_soup(self.page_num):
             all_sermons = []
             article_num = ""
             index = 1
@@ -235,7 +236,9 @@ class FullGospelSermon(Sermon):
                 elif index % 7 == 0:
                     try:
                         self.sermon_url = urljoin(self.base_url, td.div.a.get('href'))
-                        self.scrap_sermon(self.sermon_url)
+                        is_success = self.scrap_sermon(self.sermon_url)
+                        if not is_success:
+                            continue
                     except AttributeError as e:
                         self.sermon_url = None
                     all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
@@ -245,22 +248,26 @@ class FullGospelSermon(Sermon):
             self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
 
     def scrap_sermon(self, sermon_url):
-        soup = self.get_soup(sermon_url)
-        main_body = []
-        articles = soup.find("span", class_="viewText")
-        for article in articles.find_all('p'):
-            article_text = article.get_text().strip()
-            article_text = re.sub(r"[\t\n\r]", "", article_text, flags=re.UNICODE)
-            if article.find("span") is not None:
-                self.sub_title = article_text
-            elif article_text == "":
-                continue
-            else:
-                main_body.append(article_text)
+        try:
+            soup = self.get_soup(sermon_url)
+            main_body = []
+            articles = soup.find("span", class_="viewText")
+            for article in articles.find_all('p'):
+                article_text = article.get_text().strip()
+                article_text = re.sub(r"[\t\n\r]", "", article_text, flags=re.UNICODE)
+                if article.find("span") is not None:
+                    self.sub_title = article_text
+                elif article_text == "":
+                    continue
+                else:
+                    main_body.append(article_text)
 
-        self.main_body = '\n'.join(main_body)
-        self.merge_all_text()
-        self.export_to_txt()
+            self.main_body = '\n'.join(main_body)
+            self.merge_all_text()
+            self.export_to_txt()
+            return True
+        except:
+            return False
 
     def merge_all_text(self):
         self.main_text = ""
@@ -283,11 +290,11 @@ class RiverSideSermon(Sermon):
     filename = "riverside.csv"
     export_dir = os.path.join(base_dir, 'sermon', pastor_name)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page_num, isduplicateallowed):
+        super().__init__(page_num, isduplicateallowed)
 
-    def drink(self, num_of_soup=1):
-        for soup in self.gen_soup(num_of_soup):
+    def drink(self):
+        for soup in self.gen_soup(self.page_num):
             all_sermons = []
             tables = soup.find_all("td")
             for table in tables:
@@ -336,11 +343,11 @@ class TheGreenSermon(Sermon):
     filename = "thegreen.csv"
     export_dir = os.path.join(base_dir, 'sermon', pastor_name)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page_num, isduplicateallowed):
+        super().__init__(page_num, isduplicateallowed)
 
-    def drink(self, num_of_soup=1):
-        for soup in self.gen_soup(num_of_soup):
+    def drink(self):
+        for soup in self.gen_soup(self.page_num):
             all_sermons = []
             gre = re.compile(r'\[(?P<date>\d+)[a-zA-Z]*\]\s*(?P<title>.+)\s*\((?P<bible>.+)\)')
             rows = soup.find_all("tr")
@@ -386,11 +393,11 @@ class GHPCSermon(Sermon):
     filename = "ghpc.csv"
     export_dir = os.path.join(base_dir, 'sermon', pastor_name)
 
-    def __init__(self):
-        super().__init__()
+    def __init__(self, page_num, isduplicateallowed):
+        super().__init__(page_num, isduplicateallowed)
 
-    def drink(self, num_of_soup=1):
-        for soup in self.gen_soup(num_of_soup):
+    def drink(self):
+        for soup in self.gen_soup(self.page_num):
             all_sermons = []
             article_num = "19000101"
             ghre_date = re.compile(r'\d{4}-\d{2}-\d{2}')
@@ -440,24 +447,44 @@ class GHPCSermon(Sermon):
         self.merge_all_text()
         self.export_to_txt()
 
+def main(**kwargs):
+    pastor_name = kwargs['name']
+    page_number = kwargs['number']
+    is_duplicates_allowed = kwargs['allowduplicates']
+    if pastor_name == "조성노":
+        thegreen = TheGreenSermon(page_number, is_duplicates_allowed)
+        thegreen.drink()
+        thegreen.export_to_csv()
+
+    elif pastor_name == "김명혁":
+        riverside = RiverSideSermon(page_number, is_duplicates_allowed)
+        riverside.drink()
+        riverside.export_to_csv()
+
+    elif pastor_name == "조용기":
+        fullgospel = FullGospelSermon(page_number, is_duplicates_allowed)
+        fullgospel.drink()
+        fullgospel.export_to_csv()
+
+    elif pastor_name == "김병삼":
+        manna = MannaSermon(page_number, is_duplicates_allowed)
+        manna.drink()
+        manna.export_to_csv()
+
+    elif pastor_name == "석기현":
+        ghpc = GHPCSermon(page_number, is_duplicates_allowed)
+        ghpc.drink()
+        ghpc.export_to_csv()
+
+    else:
+        print("something wrong!")
+        exit(1)
+
 
 if __name__ == "__main__":
-    # manna = MannaSermon()
-    # manna.drink(5)
-    # manna.export_to_csv()
-
-    # fullgospel = FullGospelSermon()
-    # fullgospel.drink(5)
-    # fullgospel.export_to_csv()
-
-    # riverside = RiverSideSermon()
-    # riverside.drink(5)
-    # riverside.export_to_csv()
-    #
-    # thegreen = TheGreenSermon()
-    # thegreen.drink(5)
-    # thegreen.export_to_csv()
-    #
-    ghpc = GHPCSermon()
-    ghpc.drink()
-    ghpc.export_to_csv()
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-p', '--pastor', required=True, type=str, help='pastor whose sermon is to be downloaded')
+    parser.add_argument('-n', '--number', required=True, type=str, help='number of pages you want to scrap')
+    parser.add_argument('-d', '--allowduplicates', required=False, default=True, type=bool, help='whether or not allow downloading duplicates')
+    args = parser.parse_args()
+    main(name=args.pastor, number=int(args.number), allowduplicates=args.allowduplicates)

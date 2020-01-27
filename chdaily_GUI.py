@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 
 HEIGHT = 400
 WIDTH = 900
-VALID_URLS = ["www.christiandaily.co.kr", "kr.christianitydaily.com"]
+VALID_URLS = ["www.christiandaily.co.kr", "kr.christianitydaily.com", "www.newsis.com"]
 
 
 def is_valid(url):
@@ -41,6 +41,7 @@ def open_TVtable():
 
     tvtable_window = tk.Toplevel()
     tvtable_window.title("기독교방송국 TV스케줄표 다운받기")
+    tvtable_window.iconbitmap('favicon.ico')
     tvtable_canvas = tk.Canvas(tvtable_window, height=400, width=WIDTH)
     tvtable_canvas.pack()
 
@@ -86,6 +87,9 @@ def open_TVtable():
     close_btn = tk.Button(tvtable_window, text="창 닫기", command=tvtable_window.destroy)
     close_btn.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
 
+    tvtable_window.bind("<Return>", lambda e: run_timetable(year=yr_entry.get(), month=mon_entry.get(), day=day_entry.get()))
+    tvtable_window.bind("<Escape>", lambda e: tvtable_window.destroy())
+
 
 def open_chdaily():
     entry_width = 0.4
@@ -95,6 +99,7 @@ def open_chdaily():
 
     chdaily_window = tk.Toplevel()
     chdaily_window.title("기독일보 기사스크랩")
+    chdaily_window.iconbitmap('favicon.ico')
     chdaily_canvas = tk.Canvas(chdaily_window, height=HEIGHT, width=WIDTH)
     chdaily_canvas.pack()
 
@@ -118,6 +123,9 @@ def open_chdaily():
 
     close_btn = tk.Button(chdaily_window, text="창 닫기", command=chdaily_window.destroy)
     close_btn.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
+
+    chdaily_window.bind("<Return>", lambda e: run_chdaily_basic(url=url_entry.get(), kw=kw_entry.get(), order=order_entry.get()))
+    chdaily_window.bind("<Escape>", lambda e: chdaily_window.destroy())
 
 
 def run_timetable(year, month, day):
@@ -147,7 +155,72 @@ def run_chdaily_basic(url, kw, order=1):
 
 
 def open_sermon():
-    tk.messagebox.showinfo("Info", "준비중입니다")
+    pastor_options = {
+        "조용기 목사 (여의도순복음교회)": '조용기',
+        "조성노 목사 (푸른교회)": '조성노',
+        "석기현 목사 (경향교회)": '석기현',
+        "김명혁 목사 (강변교회)": '김명혁',
+        "김병삼 목사 (만나교회)": '김병삼'
+    }
+
+    frm_width = 0.80
+    frm_height = 0.40
+
+    pastor_name_w_church = tk.StringVar()
+    pastor_name = tk.StringVar()
+
+    is_duplicates_allowed = tk.BooleanVar()
+    is_duplicates_allowed.set(True)
+    page_num = tk.StringVar()
+    page_num.set(1)
+
+    sermon_window = tk.Toplevel()
+    sermon_window.title("유명목사 설교 다운받기")
+    sermon_window.iconbitmap('favicon.ico')
+    sermon_canvas = tk.Canvas(sermon_window, height=HEIGHT, width=WIDTH)
+    sermon_canvas.pack()
+
+    sermon_upper_frame = tk.Frame(sermon_window)
+    sermon_upper_frame.place(relx=0.02, rely=0.02, relwidth=frm_width, relheight=frm_height)
+    sermon_lower_frame = tk.Frame(sermon_window)
+    sermon_lower_frame.place(relx=0.02, rely=0.51, relwidth=frm_width, relheight=frm_height)
+
+    pastor_label = tk.Label(sermon_upper_frame, text="목회자를 선택하세요", anchor='nw')
+    pastor_label.place(relx=0.04, rely=0.18, relwidth=frm_width, relheight=0.18)
+    drop_pastor = tk.OptionMenu(sermon_upper_frame, pastor_name_w_church, *pastor_options)
+    drop_pastor.place(relx=0.40, rely=0.18, relwidth=0.30, relheight=0.18)
+    c_allowduplicates = tk.Checkbutton(sermon_upper_frame, text="이미 다운받은 자료라도 중복해서 다운로드하기", variable=is_duplicates_allowed, anchor='sw')
+    c_allowduplicates.place(relx=0.04, rely=0.38, relwidth=0.60, relheight=0.16)
+
+    pgnum_label = tk.Label(sermon_lower_frame, text="스크랩할 페이지 갯수를 선택하세요", anchor='nw')
+    pgnum_label.place(relx=0.04, rely=0.04, relwidth=frm_width, relheight=0.18)
+    pgnum_entry = tk.Spinbox(sermon_lower_frame, from_=1, to=50, textvariable=page_num)
+    pgnum_entry.place(relx=0.40, rely=0.04, relwidth=0.30, relheight=0.16)
+
+    show_btn = tk.Button(sermon_window, text="실행", command=(lambda: run_sermon(pastor_name=pastor_name.get(), page_num_s=pgnum_entry.get(), allowduplicates=is_duplicates_allowed.get())))
+    show_btn.place(relx=0.76, rely=0.4, relwidth=0.2, relheight=0.1)
+
+    close_btn = tk.Button(sermon_window, text="창 닫기", command=sermon_window.destroy)
+    close_btn.place(relx=0.45, rely=0.9, relwidth=0.1, relheight=0.07)
+
+    def change_pastor(*args):
+        pastor_name_ = pastor_options[pastor_name_w_church.get()]
+        pastor_name.set(pastor_name_)
+
+    pastor_name_w_church.trace('w', change_pastor)
+
+    sermon_window.bind("<Return>", lambda *_: run_sermon(pastor_name=pastor_name.get(), page_num_s=pgnum_entry.get(), allowduplicates=is_duplicates_allowed.get()))
+    sermon_window.bind("<Escape>", lambda *_: sermon_window.destroy())
+
+
+def run_sermon(pastor_name, page_num_s, allowduplicates):
+    try:
+        page_num = int(page_num_s)
+        if page_num < 1 or page_num > 50:
+            raise ValueError
+        sm.main(name=pastor_name, number=page_num, allowduplicates=allowduplicates)
+    except ValueError:
+        tk.messagebox.showinfo("Error", "Oops! You typed in wrong number")
 
 
 def main():

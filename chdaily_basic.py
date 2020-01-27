@@ -20,8 +20,9 @@ import logging
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHDAILY_URLS = {
-    "KR": "http://www.christiandaily.co.kr",
-    "US": "http://kr.christianitydaily.com"
+    "KR-CHDAILY": "http://www.christiandaily.co.kr",
+    "US-CHDAILY": "http://kr.christianitydaily.com",
+    "KR-NEWSIS": "http://www.newsis.com"
 }
 EMAIL_RE = re.compile(r'\({0,1}[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}\){0,1}', flags=re.UNICODE)
 
@@ -125,12 +126,11 @@ class Chdaily:
                     progress.update(len(data))
 
     def drink(self, soup):
-        article = soup.find('article')
-        self.get_main_title(article)
-        self.get_sub_title(article)
-        self.get_reporter_name(article)
-        self.get_images(article)
-        self.get_body_text(article)
+        self.get_main_title(soup)
+        self.get_sub_title(soup)
+        self.get_reporter_name(soup)
+        self.get_images(soup)
+        self.get_body_text(soup)
         self.merge_all_text()
         self.count_pages(self.main_text)
 
@@ -162,9 +162,14 @@ class Chdaily_US(Chdaily):
         super().__init__(url, keyword, order, export_dir)
         self.article_number = self.url.split('/')[4]
 
-    def get_body_text(self, article):
+    def get_body_text(self, soup):
+        article = soup.find('article')
         body_result = article.find('div', class_='article-txt')
         body_text_list = []
+
+        # body_elements_without_p = body_result.find(text=True, recursive=False)
+        # if body_elements_without_p:
+        #     body_text_list.append(body_elements_without_p.get_text(strip=True))
 
         body_elements = body_result.find_all('p')
         for body in body_elements:
@@ -175,7 +180,8 @@ class Chdaily_US(Chdaily):
 
         self.main_body = '\n'.join(body_text_list)
 
-    def get_reporter_name(self, article):
+    def get_reporter_name(self, soup):
+        article = soup.find('article')
         [s.extract() for s in article('em')]
         try:
             self.reporter = article.find('p', class_='art-writer fl').get_text().strip()
@@ -187,19 +193,22 @@ class Chdaily_US(Chdaily):
         if not self.reporter.endswith('기자'):
             self.reporter = self.reporter + ' 기자'
 
-    def get_main_title(self, article):
+    def get_main_title(self, soup):
+        article = soup.find('article')
         try:
             self.main_title = article.find('h1', class_='article-ttl').get_text().strip()
         except AttributeError:
             self.main_title = None
 
-    def get_sub_title(self, article):
+    def get_sub_title(self, soup):
+        article = soup.find('article')
         try:
             self.sub_title = article.find('h2', class_='article-sttl').get_text().strip()
         except AttributeError:
             self.sub_title = None
 
-    def get_images(self, article):
+    def get_images(self, soup):
+        article = soup.find('article')
         img_tags = article.find_all('div', class_=['imageBox', 'imageLeft', 'imageRight', 'article-layer'])
         for img_tag in img_tags:
             img_url = img_tag.img['src'].split('?')[0]
@@ -227,21 +236,28 @@ class Chdaily_KR(Chdaily):
     def __init__(self, url, keyword, order, export_dir=os.path.join(BASE_DIR, 'output')):
         super().__init__(url, keyword, order, export_dir)
 
-    def get_body_text(self, article):
+    def get_body_text(self, soup):
+        article = soup.find('article')
         body_result = article.find('div', class_='article-txt')
         # [s.extract() for s in body_results('strong')]
         body_text_list = []
 
+        body_elements_without_ps = body_result.find_all(text=True, recursive=False)
+        for i in body_elements_without_ps:
+            if i != '\n':
+                body_text_list.append(i.strip())
+                break
+
         body_elements = body_result.find_all('p')
         for body in body_elements:
-            if body.text == u'\xa0':
-                continue
-            sentence = body.text.strip().replace('\n', '')
-            body_text_list.append(sentence)
+            if re.search(r'\w', body.text):
+                sentence = body.text.strip().replace('\n', '')
+                body_text_list.append(sentence)
 
         self.main_body = '\n'.join(body_text_list)
 
-    def get_reporter_name(self, article):
+    def get_reporter_name(self, soup):
+        article = soup.find('article')
         [s.extract() for s in article('em')]
         try:
             self.reporter = article.find('p', class_='art-writer fl').get_text().strip()
@@ -250,21 +266,24 @@ class Chdaily_KR(Chdaily):
         if re.search(EMAIL_RE, self.reporter):
             self.reporter = re.sub(EMAIL_RE, "", self.reporter).strip()
 
-    def get_main_title(self, article):
+    def get_main_title(self, soup):
+        article = soup.find('article')
         try:
             self.main_title = article.find('h1', class_='article-ttl').get_text().strip()
         except AttributeError:
             self.main_title = None
         # print("main title is: {}".format(self.main_title))
 
-    def get_sub_title(self, article):
+    def get_sub_title(self, soup):
+        article = soup.find('article')
         try:
             self.sub_title = article.find('h2', class_='article-sttl').get_text().strip()
         except AttributeError:
             self.sub_title = None
         # print("sub title is: {}".format(self.sub_title))
 
-    def get_images(self, article):
+    def get_images(self, soup):
+        article = soup.find('article')
         img_tags = article.find_all('div', class_=['imageBox', 'imageLeft', 'imageRight'])
         for img_tag in img_tags:
             img_url = img_tag.img['src'].split('?')[0]
@@ -281,7 +300,62 @@ class Chdaily_KR(Chdaily):
         if self.main_body:
             self.main_text += self.main_body
         if self.reporter:
-            self.main_text = self.main_text[:-1] + '/' + self.reporter
+            self.main_text = self.main_text + '/' + self.reporter
+
+
+class NewsIs(Chdaily):
+    original_url = "http://www.newsis.com"
+    country = "South Korea"
+    name = "뉴시스"
+
+    def __init__(self, url, keyword, order, export_dir=os.path.join(BASE_DIR, 'output')):
+        super().__init__(url, keyword, order, export_dir)
+
+    def get_body_text(self, soup):
+        body_text_list = []
+        body_result = soup.find('div', id='textBody').find_all(text=True, recursive=False)
+        body_text_list = [re.sub(r"\n|\xa0", "", single_text).strip() for single_text in body_result if single_text != '\n']
+        body_text = "\n".join(body_text_list[:-1])
+        self.main_body = "\n".join(body_text.split("=")[2:]).strip()
+        self.reporter = body_text.split("=")[1].split("]")[1].strip()
+
+    def get_reporter_name(self, soup):
+        pass
+
+    def get_main_title(self, soup):
+        try:
+            self.main_title = soup.find('h1').get_text(strip=True)
+        except AttributeError:
+            self.main_title = None
+
+    def get_sub_title(self, soup):
+        article = soup.find('div', id="textBody")
+        try:
+            self.sub_title = article.find('div', class_='summary_view').get_text('\n', strip=True)
+        except AttributeError:
+            self.sub_title = None
+
+    def get_images(self, soup):
+        def idstartswithtable(id):
+            return id and re.compile(r"^imgartitable").match(id)
+
+        img_tags = soup.find_all('table', class_='article_photo', id=idstartswithtable)
+        for img_tag in img_tags:
+            img_url = img_tag.find('td', class_='img').img['src'].split('?')[0]
+            if not self.is_absolute(img_url):
+                img_url = urljoin(self.original_url, img_url)
+            img_name = img_tag.find('td', class_='desc').get_text(strip=True).split('=')[-1]
+            self.pics.append((img_url, img_name))
+
+    def merge_all_text(self):
+        if self.main_title:
+            self.main_text += self.main_title + '\n' + '\n'
+        if self.sub_title:
+            self.main_text += self.sub_title + '\n' + '\n'
+        if self.main_body:
+            self.main_text += self.main_body
+        if self.reporter:
+            self.main_text = self.main_text + '/' + self.reporter
 
 
 def main(**kwargs):
@@ -293,10 +367,12 @@ def main(**kwargs):
 
     main_url = urlparse(url).netloc
 
-    if main_url == urlparse(CHDAILY_URLS['KR']).netloc:
+    if main_url == urlparse(CHDAILY_URLS['KR-CHDAILY']).netloc:
         mychdaily = Chdaily_KR(url, keyword, order)
-    elif main_url == urlparse(CHDAILY_URLS['US']).netloc:
+    elif main_url == urlparse(CHDAILY_URLS['US-CHDAILY']).netloc:
         mychdaily = Chdaily_US(url, keyword, order)
+    elif main_url == urlparse(CHDAILY_URLS['KR-NEWSIS']).netloc:
+        mychdaily = NewsIs(url, keyword, order)
     else:
         print("You entered wrong URL. please try again!")
         exit(1)
