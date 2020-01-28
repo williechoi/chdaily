@@ -20,16 +20,18 @@ import logging
 import time
 import pandas as pd
 from datetime import datetime
+from chdaily_general import *
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
 
 class GodPeople():
     original_url = "https://www.godpeople.com/"
-    country = "South Korea"
-    name = {"KR": "갓피플", "EN": "Godpeople"}
     sub_url = ""
     export_dir = os.path.join(BASE_DIR, '갓피플')
+    country = "South Korea"
+    name = {"KR": "갓피플", "EN": "Godpeople"}
+
 
     def __init__(self, page_num):
         self.page_num = page_num
@@ -46,48 +48,20 @@ class GodPeople():
         self.article_limit = 99999
         self.page_limit = 999
 
-    def selenium(self, url):
-        try:
-            if not self.is_valid_url(url):
-                raise ValueError
-            driver = webdriver.Chrome('C:\\chromedriver.exe')
-            driver.implicitly_wait(3)
-            driver.get(url)
-            soup = BeautifulSoup(driver.page_source, 'lxml')
-            driver.close()
-            return soup
-        except:
-            return None
-
-    def get_single_soup(self, url):
-        return self.selenium(url)
-
-    def soup_generator(self):
-        for idx in range(1, self.page_num + 1):
-            url = urljoin(self.original_url, self.sub_url).format(idx)
-            yield self.selenium(url)
-
     def page_scrap(self):
         pass
 
     def article_scrap(self, url):
         pass
 
-    def is_valid_url(self, url):
-        parsed = urlparse(url)
-        return bool(parsed.netloc) and bool(parsed.scheme)
-
     def merge_all_text(self, main_title, sub_title, *main_body_list):
         pass
-
-    def get_valid_filename(self, s):
-        return re.sub(r'[\\/\:*"<>\|%\$\^&\n\"\?]', '', s)
 
     def export_data(self):
         if not os.path.isdir(self.export_dir):
             os.makedirs(self.export_dir)
         file_name = f'{datetime.today().strftime("%Y-%m-%d")}_{self.name}_분석보고서.csv'
-        file_name = self.get_valid_filename(file_name)
+        file_name = get_valid_filename(file_name)
         file_path = os.path.join(self.export_dir, file_name)
 
         pub_date = pd.Series(self.pub_date)
@@ -109,7 +83,7 @@ class GodPeople():
             pub_date = self.pub_date[i]
             main_title = self.main_title[i]
             file_name = f'{pub_date}_{self.name}_{main_title}.txt'
-            file_name = self.get_valid_filename(file_name)
+            file_name = get_valid_filename(file_name)
             file_path = os.path.join(self.export_dir, file_name)
             with open(file_path, 'w', encoding='utf-8') as fout:
                 fout.writelines(self.main_text[i])
@@ -124,8 +98,9 @@ class GodPeopleTodayTheme(GodPeople):
         super().__init__(page_num)
 
     def page_scrap(self):
+        page_url = urljoin(self.original_url, self.sub_url)
         try:
-            for soup in self.soup_generator():
+            for soup in soup_generator(self.page_num, page_url):
                 self.scrapped_page += 1
                 if self.scrapped_page > self.page_limit or self.scrapped_num > self.article_limit:
                     break
@@ -149,7 +124,7 @@ class GodPeopleTodayTheme(GodPeople):
         self.export_data()
 
     def article_scrap(self, url):
-        soup = self.get_single_soup(url)
+        soup = get_single_soup(url)
         main_body_list = []
         if not soup:
             return None

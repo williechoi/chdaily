@@ -10,31 +10,34 @@ import pandas as pd
 import re
 from tqdm import tqdm
 import time
+from chdaily_general import *
 
 base_dir = os.path.dirname(os.path.abspath(__file__))
 
 class Sermon:
-
     pastor_name = "김준환"
-    church_name = "한국교회"
     base_url = "https://www.naver.com"
     sub_url = "tv/timetable/?gubun=&sdate=&cdate={}"
     export_dir = os.path.join(base_dir, 'sermon', pastor_name)
-
+    church_name = "한국교회"
     filename = 'sermon.csv'
 
     def __init__(self, page_num, isduplicateallowed):
-        self.data = []
-        self.sermon_files = []
-        self.sermon_date = "2000-01-01"
-        self.sermon_url = ""
-        self.sermon_title = ""
-        self.bible_chapter = ""
-        self.sub_title = ""
-        self.main_body = ""
-        self.main_text = ""
         self.page_num = page_num
         self.isduplicateallowed = isduplicateallowed
+        self.sermon_title = []
+        self.bible_chapter = []
+        self.sermon_date = []
+
+        self.sub_title = []
+        self.sermon_files = []
+        self.main_body = []
+
+        self.scrapped_num = 0
+        self.scrapped_page = 0
+
+        self.article_limit = 99999
+        self.page_limit = 999
 
     def export_to_hwp(self):
         if not os.path.isdir(self.export_dir):
@@ -162,44 +165,49 @@ class MannaSermon(Sermon):
     def __init__(self, page_num, isduplicateallowed):
         super().__init__(page_num, isduplicateallowed)
 
-    def drink(self):
-        for soup in self.gen_soup(self.page_num):
-            table = soup.find('table', class_='tbl_news_2')
-            tbody = table.find('tbody')
-            rows = tbody.find_all('tr')
-            all_sermons = []
-            for tr in rows:
-                pastor = ""
-                article_num = ""
-                # try:
-                #     article_num = tr.find('td').get_text()
-                # except AttributeError as e:
-                #     article_num = "000"
-                for td in tr.find_all('dl', class_='sbj_list'):
-                    self.sermon_title = self.get_valid_title(td.dt.get_text())
-                    for dd in td.find_all('dd'):
-                        sermon_info = dd.get_text()
-                        if sermon_info.startswith("설교자"):
-                            pastor = sermon_info.split(":")[1].strip()
-                        elif sermon_info.startswith("설교날짜"):
-                            self.sermon_date = sermon_info.split(":")[1].strip()
-                            article_num = self.date_to_num(self.sermon_date)
-                        elif sermon_info.startswith("성경본문"):
-                            idx = sermon_info.index(":") + 1
-                            self.bible_chapter = sermon_info[idx:].strip()
-                try:
-                    sermon_resource = tr.find('td', class_='videoview')
-                    for aa in sermon_resource.find_all('a'):
-                        if aa.img['alt'] == "문서보기":
-                            self.sermon_url = urljoin(self.base_url, aa['href'])
-                            self.export_to_hwp()
-                except AttributeError as e:
-                    print(e)
+    def page_scrap(self):
+        page_url = urljoin(self.base_url, self.sub_url)
+        try:
+            for soup in soup_generator(self.page_num, page_url):
+                table = soup.find('table', class_='tbl_news_2')
+                tbody = table.find('tbody')
+                rows = tbody.find_all('tr')
+                all_sermons = []
+                for tr in rows:
+                    pastor = ""
+                    article_num = ""
+                    # try:
+                    #     article_num = tr.find('td').get_text()
+                    # except AttributeError as e:
+                    #     article_num = "000"
+                    for td in tr.find_all('dl', class_='sbj_list'):
+                        self.sermon_title = self.get_valid_title(td.dt.get_text())
+                        for dd in td.find_all('dd'):
+                            sermon_info = dd.get_text()
+                            if sermon_info.startswith("설교자"):
+                                pastor = sermon_info.split(":")[1].strip()
+                            elif sermon_info.startswith("설교날짜"):
+                                self.sermon_date = sermon_info.split(":")[1].strip()
+                                article_num = self.date_to_num(self.sermon_date)
+                            elif sermon_info.startswith("성경본문"):
+                                idx = sermon_info.index(":") + 1
+                                self.bible_chapter = sermon_info[idx:].strip()
+                    try:
+                        sermon_resource = tr.find('td', class_='videoview')
+                        for aa in sermon_resource.find_all('a'):
+                            if aa.img['alt'] == "문서보기":
+                                self.sermon_url = urljoin(self.base_url, aa['href'])
+                                self.export_to_hwp()
+                    except AttributeError as e:
+                        print(e)
 
-                if self.pastor_name in pastor:
-                    all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
+                    if self.pastor_name in pastor:
+                        all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
 
-            self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+                self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+
+        except StopIteration:
+            pass
 
 
 class FullGospelSermon(Sermon):
@@ -214,38 +222,40 @@ class FullGospelSermon(Sermon):
     def __init__(self, page_num, isduplicateallowed):
         super().__init__(page_num, isduplicateallowed)
 
-    def drink(self):
-        for soup in self.gen_soup(self.page_num):
-            all_sermons = []
-            article_num = ""
-            index = 1
-            table = soup.select("html>body>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td")
-            for td in table:
-                if index % 7 == 1:
-                    date_var = td.get_text()
-                    date_var = re.sub(r"[\n\t\r\xa0\s]", "", date_var)
-                    if date_var == "":
-                        break
-                    else:
-                        self.sermon_date = date_var
-                        article_num = self.date_to_num(self.sermon_date)
-                elif index % 7 == 2:
-                    self.bible_chapter = td.get_text()
-                elif index % 7 == 3:
-                    self.sermon_title = td.get_text()
-                elif index % 7 == 0:
-                    try:
-                        self.sermon_url = urljoin(self.base_url, td.div.a.get('href'))
-                        is_success = self.scrap_sermon(self.sermon_url)
-                        if not is_success:
-                            continue
-                    except AttributeError as e:
-                        self.sermon_url = None
-                    all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
-
-                index += 1
-
-            self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+    def page_scrap(self):
+        page_url = urljoin(self.base_url, self.sub_url)
+        try:
+            for soup in soup_generator(self.page_num, page_url):
+                all_sermons = []
+                article_num = ""
+                index = 1
+                table = soup.select("html>body>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td>table>tbody>tr>td")
+                for td in table:
+                    if index % 7 == 1:
+                        date_var = td.get_text()
+                        date_var = re.sub(r"[\n\t\r\xa0\s]", "", date_var)
+                        if date_var == "":
+                            break
+                        else:
+                            self.sermon_date = date_var
+                            article_num = self.date_to_num(self.sermon_date)
+                    elif index % 7 == 2:
+                        self.bible_chapter = td.get_text()
+                    elif index % 7 == 3:
+                        self.sermon_title = td.get_text()
+                    elif index % 7 == 0:
+                        try:
+                            self.sermon_url = urljoin(self.base_url, td.div.a.get('href'))
+                            is_success = self.scrap_sermon(self.sermon_url)
+                            if not is_success:
+                                continue
+                        except AttributeError as e:
+                            self.sermon_url = None
+                        all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
+                    index += 1
+                self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+        except StopIteration:
+            pass
 
     def scrap_sermon(self, sermon_url):
         try:
@@ -293,25 +303,30 @@ class RiverSideSermon(Sermon):
     def __init__(self, page_num, isduplicateallowed):
         super().__init__(page_num, isduplicateallowed)
 
-    def drink(self):
-        for soup in self.gen_soup(self.page_num):
-            all_sermons = []
-            tables = soup.find_all("td")
-            for table in tables:
-                rows = table.find_all("td")
-                index = 0
-                for row in rows:
-                    if row.text.strip() == "김명혁 목사":
-                        self.sermon_title = rows[index-1].get_text().strip()
-                        self.sermon_date = rows[index+2].get_text().strip()
-                        article_num = self.date_to_num(self.sermon_date)
-                        self.sermon_url = urljoin(self.base_url, rows[index-1].div.a.get('href'))
-                        self.scrap_sermon(self.sermon_url)
-                        all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
+    def page_scrap(self):
+        page_url = urljoin(self.base_url, self.sub_url)
+        try:
+            for soup in soup_generator(self.page_num, page_url):
+                all_sermons = []
+                tables = soup.find_all("td")
+                for table in tables:
+                    rows = table.find_all("td")
+                    index = 0
+                    for row in rows:
+                        if row.text.strip() == "김명혁 목사":
+                            self.sermon_title = rows[index-1].get_text().strip()
+                            self.sermon_date = rows[index+2].get_text().strip()
+                            article_num = self.date_to_num(self.sermon_date)
+                            self.sermon_url = urljoin(self.base_url, rows[index-1].div.a.get('href'))
+                            self.scrap_sermon(self.sermon_url)
+                            all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
 
-                    index += 1
+                        index += 1
 
-            self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+                self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+
+        except StopIteration:
+            pass
 
     def scrap_sermon(self, sermon_url):
         soup = self.get_soup(sermon_url)
@@ -346,31 +361,35 @@ class TheGreenSermon(Sermon):
     def __init__(self, page_num, isduplicateallowed):
         super().__init__(page_num, isduplicateallowed)
 
-    def drink(self):
-        for soup in self.gen_soup(self.page_num):
-            all_sermons = []
-            gre = re.compile(r'\[(?P<date>\d+)[a-zA-Z]*\]\s*(?P<title>.+)\s*\((?P<bible>.+)\)')
-            rows = soup.find_all("tr")
-            for row in rows:
-                if row.parent.name != "tbody":
-                    continue
-                else:
-                    sermon_tag = row.find("td", class_="title")
-                    sermon_info = sermon_tag.get_text(strip=True)
-                    m = gre.match(sermon_info)
-                    if m is None:
+    def page_scrap(self):
+        page_url = urljoin(self.base_url, self.sub_url)
+        try:
+            for soup in soup_generator(self.page_num, page_url):
+                all_sermons = []
+                gre = re.compile(r'\[(?P<date>\d+)[a-zA-Z]*\]\s*(?P<title>.+)\s*\((?P<bible>.+)\)')
+                rows = soup.find_all("tr")
+                for row in rows:
+                    if row.parent.name != "tbody":
                         continue
                     else:
-                        m_dict = m.groupdict()
-                        self.sermon_title = m_dict.get('title').strip()
-                        self.bible_chapter = m_dict.get('bible').strip()
-                        article_num = m_dict.get('date').strip()
-                        self.sermon_date = self.num_to_date(article_num)
-                        self.sermon_url = urljoin(self.base_url, sermon_tag.a.get('href'))
-                        self.scrap_sermon(self.sermon_url)
-                        all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
+                        sermon_tag = row.find("td", class_="title")
+                        sermon_info = sermon_tag.get_text(strip=True)
+                        m = gre.match(sermon_info)
+                        if m is None:
+                            continue
+                        else:
+                            m_dict = m.groupdict()
+                            self.sermon_title = m_dict.get('title').strip()
+                            self.bible_chapter = m_dict.get('bible').strip()
+                            article_num = m_dict.get('date').strip()
+                            self.sermon_date = self.num_to_date(article_num)
+                            self.sermon_url = urljoin(self.base_url, sermon_tag.a.get('href'))
+                            self.scrap_sermon(self.sermon_url)
+                            all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
 
-            self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+                self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+        except StopIteration:
+            pass
 
     def scrap_sermon(self, sermon_url):
         soup = self.get_soup(sermon_url)
@@ -396,30 +415,34 @@ class GHPCSermon(Sermon):
     def __init__(self, page_num, isduplicateallowed):
         super().__init__(page_num, isduplicateallowed)
 
-    def drink(self):
-        for soup in self.gen_soup(self.page_num):
-            all_sermons = []
-            article_num = "19000101"
-            ghre_date = re.compile(r'\d{4}-\d{2}-\d{2}')
-            ghre_title = re.compile(r'“.+”')
-            video_table = soup.find("div", class_="post_ajax_tm")
-            rows = video_table.find_all("div", class_="item-head")
-            for row in rows:
-                self.sermon_url = row.h3.a.get('href')
-                sermon_info = row.h3.get_text(strip=True)
-                if "석기현" not in sermon_info:
-                    continue
-                else:
-                    if re.search(ghre_date, sermon_info):
-                        self.sermon_date = re.findall(ghre_date, sermon_info)[0]
-                        article_num = self.date_to_num(self.sermon_date)
-                    if re.search(ghre_title, sermon_info):
-                        self.sermon_title = re.findall(ghre_title, sermon_info)[0]
-                    self.scrap_sermon(self.sermon_url)
+    def page_scrap(self):
+        page_url = urljoin(self.base_url, self.sub_url)
+        try:
+            for soup in soup_generator(self.page_num, page_url):
+                all_sermons = []
+                article_num = "19000101"
+                ghre_date = re.compile(r'\d{4}-\d{2}-\d{2}')
+                ghre_title = re.compile(r'“.+”')
+                video_table = soup.find("div", class_="post_ajax_tm")
+                rows = video_table.find_all("div", class_="item-head")
+                for row in rows:
+                    self.sermon_url = row.h3.a.get('href')
+                    sermon_info = row.h3.get_text(strip=True)
+                    if "석기현" not in sermon_info:
+                        continue
+                    else:
+                        if re.search(ghre_date, sermon_info):
+                            self.sermon_date = re.findall(ghre_date, sermon_info)[0]
+                            article_num = self.date_to_num(self.sermon_date)
+                        if re.search(ghre_title, sermon_info):
+                            self.sermon_title = re.findall(ghre_title, sermon_info)[0]
+                        self.scrap_sermon(self.sermon_url)
 
-                all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
+                    all_sermons.append([article_num, self.sermon_title, self.pastor_name, self.sermon_date, self.bible_chapter, self.sermon_url])
 
-            self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+                self.data.append(pd.DataFrame(all_sermons, columns=['no', 'title', 'pastor', 'date', 'bible_chapter', 'url']))
+        except StopIteration:
+            pass
 
     def scrap_sermon(self, sermon_url):
         soup = self.get_soup(sermon_url)
