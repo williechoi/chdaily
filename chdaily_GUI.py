@@ -168,6 +168,8 @@ def open_sermon():
 
     pastor_name_w_church = tk.StringVar()
     pastor_name = tk.StringVar()
+    limit_num = tk.IntVar()
+    limit_num.set(10)
 
     is_duplicates_allowed = tk.BooleanVar()
     is_duplicates_allowed.set(True)
@@ -195,9 +197,14 @@ def open_sermon():
     pgnum_label = tk.Label(sermon_lower_frame, text="스크랩할 페이지 갯수를 선택하세요", anchor='nw')
     pgnum_label.place(relx=0.04, rely=0.04, relwidth=frm_width, relheight=0.18)
     pgnum_entry = tk.Spinbox(sermon_lower_frame, from_=1, to=50, textvariable=page_num)
-    pgnum_entry.place(relx=0.40, rely=0.04, relwidth=0.30, relheight=0.16)
+    pgnum_entry.place(relx=0.50, rely=0.04, relwidth=0.20, relheight=0.16)
 
-    show_btn = tk.Button(sermon_window, text="실행", command=(lambda: run_sermon(pastor_name=pastor_name.get(), page_num_s=pgnum_entry.get(), allowduplicates=is_duplicates_allowed.get())))
+    lmt_label = tk.Label(sermon_lower_frame, text="(선택) 최대 다운받을 설교 갯수의 제한을 설정하세요", anchor='nw')
+    lmt_label.place(relx=0.04, rely=0.34, relwidth=frm_width, relheight=0.18)
+    lmt_entry = tk.Entry(sermon_lower_frame, textvariable=limit_num)
+    lmt_entry.place(relx=0.50, rely=0.34, relwidth=0.20, relheight=0.16)
+
+    show_btn = tk.Button(sermon_window, text="실행", command=(lambda: run_sermon(pastor_name=pastor_name.get(), page_num_s=pgnum_entry.get(), allowduplicates=is_duplicates_allowed.get(), limit_num=lmt_entry.get())))
     show_btn.place(relx=0.76, rely=0.4, relwidth=0.2, relheight=0.1)
 
     close_btn = tk.Button(sermon_window, text="창 닫기", command=sermon_window.destroy)
@@ -213,12 +220,17 @@ def open_sermon():
     sermon_window.bind("<Escape>", lambda *_: sermon_window.destroy())
 
 
-def run_sermon(pastor_name, page_num_s, allowduplicates):
+def run_sermon(pastor_name, page_num_s, allowduplicates, limit_num):
     try:
         page_num = int(page_num_s)
+        limit_num = int(limit_num)
         if page_num < 1 or page_num > 50:
             raise ValueError
-        sm.main(name=pastor_name, number=page_num, allowduplicates=allowduplicates)
+
+        elif limit_num < 1:
+            raise ValueError
+
+        sm.main(name=pastor_name, number=page_num, allowduplicates=allowduplicates, limit=limit_num)
     except ValueError:
         tk.messagebox.showinfo("Error", "Oops! You typed in wrong number")
 

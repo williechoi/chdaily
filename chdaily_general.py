@@ -39,12 +39,10 @@ def is_valid_url(url):
 
 
 def export_csv_file(df, header, primary, secondary, export_dir):
-    print('will record df----')
     export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), export_dir)
     file_name = f'{header}_{secondary}_{primary}.csv'
     file_name = get_valid_filename(file_name)
     file_path = get_file_path(export_dir, file_name)
-    print(df)
 
     df.to_csv(file_path, index=False, sep=',')
 
@@ -89,17 +87,16 @@ def num_to_date(num):
     return '-'.join([num[:4], num[4:6], num[6:]])
 
 
-def series_to_dataframe(*columns, column_name=None):
-    print('aaa')
+def series_to_dataframe(columns, column_name=None):
     series_list = []
+    print(series_list)
     for column in columns:
         series_list.append(pd.Series(column))
-
-    print('bbb')
+    print(series_list)
     df = pd.concat(series_list, axis=1)
     if column_name is not None:
         df.columns = column_name
-    print('ccc')
+    print(df.head())
 
     return df
 
