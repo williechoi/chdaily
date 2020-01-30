@@ -6,6 +6,8 @@ import sermon as sm
 from urllib.parse import urljoin, urlparse
 from dateutil.parser import parse
 from datetime import datetime, timedelta
+import tkinter.font as font
+from PIL import Image, ImageTk
 
 HEIGHT = 400
 WIDTH = 900
@@ -44,6 +46,7 @@ def open_TVtable():
     tvtable_window.iconbitmap('favicon.ico')
     tvtable_canvas = tk.Canvas(tvtable_window, height=400, width=WIDTH)
     tvtable_canvas.pack()
+    myfont = font.Font(family="한컴 윤고딕 240", size=12)
 
     tv_upper_frame = tk.Frame(tvtable_window)
     tv_upper_frame.place(relx=0.02, rely=0.02, relwidth=frm_width, relheight=frm_height)
@@ -81,7 +84,7 @@ def open_TVtable():
     c_cchannel = tk.Checkbutton(tv_lower_frame, text="Cchannel", variable=is_cchannel, onvalue=1, offvalue=0, anchor='sw')
     c_cchannel.place(relx=0.04, rely=0.76, relwidth=cbx_width, relheight=cbx_height)
 
-    show_btn = tk.Button(tvtable_window, text="실행", command=(lambda: run_timetable(year=yr_entry.get(), month=mon_entry.get(), day=day_entry.get())))
+    show_btn = tk.Button(tvtable_window, text="실행", font=myfont, bg="#ffffcc", command=(lambda: run_timetable(year=yr_entry.get(), month=mon_entry.get(), day=day_entry.get())))
     show_btn.place(relx=0.76, rely=0.45, relwidth=0.2, relheight=0.1)
 
     close_btn = tk.Button(tvtable_window, text="창 닫기", command=tvtable_window.destroy)
@@ -107,6 +110,7 @@ def open_chdaily():
     url_label.place(relx=0.05, rely=0.2, relwidth=lbl_width, relheight=lbl_height)
     url_entry = tk.Entry(chdaily_window, text='url 입력')
     url_entry.place(relx=0.3, rely=0.2, relwidth=entry_width, relheight=entry_height)
+    myfont = font.Font(family="한컴 윤고딕 240", size=12)
 
     kw_label = tk.Label(chdaily_window, text="키워드를 입력하세요: ")
     kw_label.place(relx=0.05, rely=0.4, relwidth=lbl_width, relheight=lbl_height)
@@ -118,7 +122,7 @@ def open_chdaily():
     order_entry = tk.Entry(chdaily_window, text='순서 입력')
     order_entry.place(relx=0.3, rely=0.6, relwidth=entry_width, relheight=entry_height)
 
-    show_btn = tk.Button(chdaily_window, text="실행", command=(lambda: run_chdaily_basic(url=url_entry.get(), kw=kw_entry.get(), order=order_entry.get())))
+    show_btn = tk.Button(chdaily_window, text="실행", font=myfont, bg="#ffffcc", command=(lambda: run_chdaily_basic(url=url_entry.get(), kw=kw_entry.get(), order=order_entry.get())))
     show_btn.place(relx=0.76, rely=0.4, relwidth=0.2, relheight=0.1)
 
     close_btn = tk.Button(chdaily_window, text="창 닫기", command=chdaily_window.destroy)
@@ -181,6 +185,7 @@ def open_sermon():
     sermon_window.iconbitmap('favicon.ico')
     sermon_canvas = tk.Canvas(sermon_window, height=HEIGHT, width=WIDTH)
     sermon_canvas.pack()
+    myfont = font.Font(family="한컴 윤고딕 240", size=12)
 
     sermon_upper_frame = tk.Frame(sermon_window)
     sermon_upper_frame.place(relx=0.02, rely=0.02, relwidth=frm_width, relheight=frm_height)
@@ -204,7 +209,7 @@ def open_sermon():
     lmt_entry = tk.Entry(sermon_lower_frame, textvariable=limit_num)
     lmt_entry.place(relx=0.50, rely=0.34, relwidth=0.20, relheight=0.16)
 
-    show_btn = tk.Button(sermon_window, text="실행", command=(lambda: run_sermon(pastor_name=pastor_name.get(), page_num_s=pgnum_entry.get(), allowduplicates=is_duplicates_allowed.get(), limit_num=lmt_entry.get())))
+    show_btn = tk.Button(sermon_window, text="실행", font=myfont, bg="#ffffcc", command=(lambda: run_sermon(pastor_name=pastor_name.get(), page_num_s=pgnum_entry.get(), allowduplicates=is_duplicates_allowed.get(), limit_num=lmt_entry.get())))
     show_btn.place(relx=0.76, rely=0.4, relwidth=0.2, relheight=0.1)
 
     close_btn = tk.Button(sermon_window, text="창 닫기", command=sermon_window.destroy)
@@ -236,6 +241,7 @@ def run_sermon(pastor_name, page_num_s, allowduplicates, limit_num):
 
 
 def main():
+
     root = tk.Tk()
     root.title("기독일보 어플리케이션")
     root.iconbitmap('favicon.ico')
@@ -246,16 +252,18 @@ def main():
     company_label = tk.Label(root, image=company_image)
     company_label.place(relx=0.05, rely=0.4, relwidth=0.4, relheight=0.1)
 
-    right_frame = tk.Frame(root, bg='gray')
+    myfont = font.Font(family="한컴 윤고딕 240", size=15)
+
+    right_frame = tk.Frame(root)
     right_frame.place(relx=0.52, rely=0.05, relwidth=0.45, relheight=0.90)
 
-    tvtable_btn = tk.Button(right_frame, text='TV 스케줄표 다운받기', command=open_TVtable)
+    tvtable_btn = tk.Button(right_frame, text='TV 스케줄표 다운받기', command=open_TVtable, relief='raised', bd=3, bg="#e6fff7", font=myfont)
     tvtable_btn.place(relx=0.05, rely=0.07, relwidth=0.9, relheight=0.24)
 
-    article_scrap_btn = tk.Button(right_frame, text='기독일보 기사 스크랩하기', command=open_chdaily)
+    article_scrap_btn = tk.Button(right_frame, text='기독일보 기사 스크랩하기', command=open_chdaily, relief='raised', bd=3, bg="#b3ffe6", font=myfont)
     article_scrap_btn.place(relx=0.05, rely=0.38, relwidth=0.9, relheight=0.24)
 
-    sermon_scrap_btn = tk.Button(right_frame, text='유명목사 설교 스크랩하기', command=open_sermon)
+    sermon_scrap_btn = tk.Button(right_frame, text='유명목사 설교 스크랩하기', command=open_sermon, relief='raised', bd=3, bg="#66ffcc", font=myfont)
     sermon_scrap_btn.place(relx=0.05, rely=0.69, relwidth=0.9, relheight=0.24)
 
     exit_btn = tk.Button(root, text='종료', bg='red', fg='white', command=root.quit)

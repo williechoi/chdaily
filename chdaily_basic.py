@@ -224,7 +224,7 @@ class Chdaily_US(Chdaily):
             self.main_text += self.sub_title + '\n' + '\n'
         if self.main_body:
             self.main_text += self.main_body
-        if self.reporter:
+        if self.reporter and self.reporter.strip() != "기자":
             self.main_text = self.main_text + '/' + self.reporter
 
 
@@ -299,7 +299,7 @@ class Chdaily_KR(Chdaily):
             self.main_text += self.sub_title + '\n' + '\n'
         if self.main_body:
             self.main_text += self.main_body
-        if self.reporter:
+        if self.reporter and self.reporter.strip() != "기자":
             self.main_text = self.main_text + '/' + self.reporter
 
 
