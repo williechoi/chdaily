@@ -1,13 +1,14 @@
 import tkinter as tk
-from tkinter import messagebox
-import chdaily_basic as cb
-import timetable as tb
-import sermon as sm
-from urllib.parse import urljoin, urlparse
-from dateutil.parser import parse
-from datetime import datetime, timedelta
 import tkinter.font as font
-from PIL import Image, ImageTk
+from datetime import datetime
+from tkinter import messagebox
+from urllib.parse import urlparse
+
+from dateutil.parser import parse
+
+import chdaily_basic as cb
+import sermon as sm
+import timetable as tb
 
 HEIGHT = 400
 WIDTH = 900

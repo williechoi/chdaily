@@ -5,18 +5,16 @@
     made by Hyungsuk Choi. ⓒ All rights reserved.
 """
 
-from bs4 import BeautifulSoup
-import requests
 import argparse
-from urllib.parse import urljoin, urlparse
-import os
-import pathlib
-from tqdm import tqdm
-import re
-from selenium import webdriver
-import selenium.common.exceptions
-import msvcrt
 import logging
+import os
+import re
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from tqdm import tqdm
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHDAILY_URLS = {
