@@ -18,7 +18,7 @@ class Sermon:
     church_name = "한국교회"
     base_url = "https://www.naver.com"
     sub_url = "tv/timetable/?gubun=&sdate=&cdate={}"
-    export_dir = 'sermon/{}'.format(pastor_name)
+    export_dir = 'sermon\\{}'.format(pastor_name)
 
     def __init__(self, page_num, isduplicateallowed, limit):
         # arguments

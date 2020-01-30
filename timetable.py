@@ -27,6 +27,7 @@ from datetime import datetime
 from datetime import timedelta
 import pandas as pd
 import re
+from chdaily_general import *
 
 
 class TVtable:
@@ -36,75 +37,29 @@ class TVtable:
     sub_url_mobile = "tv/timetable/?gubun=&sdate=&cdate={}"
     name = 'TV'
     is_00_to_24 = True
+    export_dir = 'TVtable'
     BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
     def __init__(self, now_date, filename='noname.csv'):
+        # date information
         self.now_date = datetime.strptime(now_date, "%Y-%m-%d").date()
         self.next_date = self.now_date + timedelta(days=1)
+
+        # url information
         self.now_url = urljoin(self.base_url_pc, self.sub_url_pc.format(self.now_date.strftime('%Y-%m-%d')))
         self.next_url = urljoin(self.base_url_pc, self.sub_url_pc.format(self.next_date.strftime('%Y-%m-%d')))
         self.data = []
         self.filename = filename
 
-    def get_selenium_soup(self):
-        driver = webdriver.Chrome('C:\\chromedriver.exe')
-        driver.implicitly_wait(3)
-        driver.get(self.now_url)
+        # data information
+        self.hour = []
+        self.program = []
 
-        today_soup = BeautifulSoup(driver.page_source, 'lxml')
-
-        driver.implicitly_wait(3)
-        driver.get(self.next_url)
-
-        tomorrow_soup = BeautifulSoup(driver.page_source, 'lxml')
-        driver.close()
-
-        return today_soup, tomorrow_soup
-
-
-    def get_requests_soup(self):
-        res = requests.get(self.now_url)
-        if res.status_code == 200:
-            html = res.text
-        else:
-            print("something wrong occurred!")
-            exit(1)
-        today_soup = BeautifulSoup(html, 'lxml')
-
-        res = requests.get(self.next_url)
-        if res.status_code == 200:
-            html = res.text
-        else:
-            print("something wrong occurred!")
-            exit(1)
-        tomorrow_soup = BeautifulSoup(html, 'lxml')
-
-        return today_soup, tomorrow_soup
-
-    def get_soup(self):
-        if not self.now_url or not self.next_url:
-            print("url is not valid!")
-            exit(1)
-
-        # today_soup, tomorrow_soup = self.get_requests_soup()
-        today_soup, tomorrow_soup = self.get_selenium_soup()
-
-        return today_soup, tomorrow_soup
-
-    def drink(self, soup):
+    def scrap_table(self):
         pass
 
-    def get_dataframe(self):
-        df = pd.concat((self.data[0], self.data[1]), axis=0)
-        df = df.groupby('hour').agg({self.name: '\n'.join})
-        return df
-
-    def export_to_csv(self, df):
-        df.reset_index(inplace=True)
-        df.rename(columns={'index': 'hour'}, inplace=True)
-        df['hour'] = df['hour'].apply(lambda x: str(x) + ':00')
-        filepath = os.path.join(self.BASE_DIR, self.filename)
-        df.to_csv(filepath, index=False)
+    def get_dataframe(self, df):
+        return df.groupby('hour').agg({self.name: '\n'.join})
 
 
 class CBSTVtable(TVtable):
@@ -118,16 +73,15 @@ class CBSTVtable(TVtable):
     def __init__(self, now_date, filename='cbstv.csv'):
         super().__init__(now_date, filename)
 
-    def drink(self, soups):
-        is_first_soup = True
-        for soup in soups:
-            table = soup.find('div', id='time_data')
-            rows = table.find_all('tr')
-            all_programs = []
+    def scrap_table(self):
+        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+
+        for idx, soup in enumerate(soups):
+            rows = soup.find('div', id='time_data').find_all('tr')
+
             for tr in rows:
                 hour = ""
                 minute = ""
-                # print(tr)
 
                 for td in tr.find_all('td', class_=['sc_time', 'sc_title']):
                     if td['class'][0] == 'sc_time':
@@ -137,24 +91,28 @@ class CBSTVtable(TVtable):
                         except IndexError as e:
                             print(e)
                             exit(1)
+
                     elif td['class'][0] == 'sc_title':
                         if td.has_attr('a'):
-                            prog_name = td.a.text.strip()
+                            program = f'{minute} {td.a.text.strip()}'
                         else:
-                            prog_name = td.text.strip()
-                        program = '{} {}'.format(minute, prog_name)
-                        # print(program)
-                        if is_first_soup:
-                            if hour != 4:
-                                all_programs.append([hour, program])
-                        else:
-                            if hour == 4:
-                                all_programs.append([hour, program])
+                            program = f'{minute} {td.text.strip()}'
+
+                        if idx == 0 and hour != 4:
+                            self.hour.append(hour)
+                            self.program.append(program)
+
+                        elif idx == 1 and hour == 4:
+                            self.hour.append(hour)
+                            self.program.append(program)
+
                     else:
                         continue
 
-            self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-            is_first_soup = False
+        df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
+        df = self.get_dataframe(df)
+
+        return df
 
 
 class CTSTVtable(TVtable):
@@ -168,21 +126,20 @@ class CTSTVtable(TVtable):
     def __init__(self, now_date, filename='ctstv.csv'):
         super().__init__(now_date, filename)
 
-    def drink(self, soups):
-        is_first_soup = True
-        for soup in soups:
+    def scrap_table(self):
+        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+
+        for idx, soup in enumerate(soups):
             [s.extract() for s in soup('div', class_='remark')]
             rows = soup.find_all('ul', class_='progTable')
-            all_programs = []
+
             for tr in rows:
                 hour = ""
                 minute = ""
 
                 for li in tr.find_all('li'):
-                    # print(li)
                     for div in li.find_all('div'):
                         if div['class'][0] == 'time':
-                            # print('processing time variable')
                             try:
                                 hour = int(div.text.split(':')[0].strip())
                                 minute = div.text.split(':')[1].strip()
@@ -190,28 +147,28 @@ class CTSTVtable(TVtable):
                                 print(e)
                                 exit(1)
 
-
                         elif div['class'][0] == 'info':
-                            # print('processing program name variable')
                             try:
-                                prog_name = div.find('div', class_='title').text.strip()
+                                program = f'{minute} {div.find("div", class_="title").text.strip()}'
                             except AttributeError as e:
-                                prog_name = 'error'
+                                program = 'error'
 
-                            program = '{} {}'.format(minute, prog_name)
-                            if is_first_soup:
-                                if hour > 4:
-                                    if hour == 24:
-                                        hour = 0
-                                    all_programs.append([hour, program])
-                            else:
-                                if hour < 5:
-                                    all_programs.append([hour, program])
+                            if idx == 0 and hour > 4:
+                                hour = 0 if hour == 24 else hour
+                                self.hour.append(hour)
+                                self.program.append(program)
+
+                            elif idx == 1 and hour < 5:
+                                self.hour.append(hour)
+                                self.program.append(program)
+
                         else:
                             continue
 
-            self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-            is_first_soup = False
+        df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
+        df = self.get_dataframe(df)
+
+        return df
 
 
 class CGNTVtable(TVtable):
@@ -224,19 +181,22 @@ class CGNTVtable(TVtable):
 
     def __init__(self, now_date, filename='cgntv.csv'):
         super().__init__(now_date, filename)
+        self.now_url = urljoin(self.base_url_mobile, self.sub_url_mobile.format(self.now_date.strftime('%Y-%m-%d')))
+        self.next_url = urljoin(self.base_url_mobile, self.sub_url_mobile.format(self.next_date.strftime('%Y-%m-%d')))
 
-    def drink(self, soups):
-        is_first_soup = True
-        for soup in soups:
+    def scrap_table(self):
+        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+
+        for idx, soup in enumerate(soups):
             [s.extract() for s in soup('em')]
             rows = soup.find_all('ul', class_='pgr_sch_list')
-            all_programs = []
+
             for tr in rows:
                 hour = ""
                 minute = ""
+                program = ""
 
                 for li in tr.find_all('li'):
-                    # print(td)
                     hhmm = li.strong.text
                     try:
                         hour = int(hhmm.split(':')[0])
@@ -244,63 +204,27 @@ class CGNTVtable(TVtable):
                     except IndexError as e:
                         print("index error occurred: {}".format(e))
                         exit(1)
+
                     try:
-                        prog_name = li.div.text.strip()
+                        prog_name = re.sub(r"([\t\n\r])", "", li.div.text.strip(), flags=re.UNICODE).replace('HD', '').strip()
+                        program = f'{minute} {prog_name}'
+
                     except AttributeError as e:
                         print("Attribute Error occurred: {}".format(e))
                         exit(1)
 
-                    prog_name = re.sub(r"([\t\n\r])", "", prog_name, flags=re.UNICODE)
+                    if idx == 0 and hour > 4:
+                        self.hour.append(hour)
+                        self.program.append(program)
 
-                    if 'HD' in prog_name:
-                        # print('HD found')
-                        prog_name = prog_name.replace('HD', '').strip()
+                    elif idx == 1 and hour < 5:
+                        self.hour.append(hour)
+                        self.program.append(program)
 
-                    program = '{} {}'.format(minute, prog_name)
-                    if is_first_soup:
-                        if hour > 4:
-                            all_programs.append([hour, program])
-                    else:
-                        if hour < 5:
-                            all_programs.append([hour, program])
+        df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
+        df = self.get_dataframe(df)
 
-                    # script for using PC url. do not use
-                    # if not td.has_attr('class'):
-                    #     # print('processing time variable')
-                    #     try:
-                    #         hour = int(td.text.split(':')[0])
-                    #         minute = td.text.split(':')[1]
-                    #     except IndexError as e:
-                    #         print(e)
-                    #         exit(1)
-                    #
-                    # elif td['class'][0] == 'left':
-                    #     # print('processing program name variable')
-                    #     try:
-                    #         prog_name = td.a.text.strip()
-                    #     except AttributeError as e:
-                    #         prog_name = td.text.strip()
-                    #
-                    #     prog_name = re.sub(r"([\t\n\r])", "", prog_name, flags=re.UNICODE)
-                    #
-                    #     if 'HD' in prog_name:
-                    #         # print('HD found')
-                    #         prog_name = prog_name.replace('HD', '').strip()
-                    #
-                    #     program = '{} {}'.format(minute, prog_name)
-                    #     if is_first_soup:
-                    #         if hour > 4:
-                    #             all_programs.append([hour, program])
-                    #     else:
-                    #         if hour < 5:
-                    #             all_programs.append([hour, program])
-                    #     # print(prog_name)
-                    # else:
-                    #     continue
-                    #     # print('yahoo')
-
-            self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-            is_first_soup = False
+        return df
 
 
 class GoodTVtable(TVtable):
@@ -314,44 +238,45 @@ class GoodTVtable(TVtable):
     def __init__(self, now_date, filename='goodtv.csv'):
         super().__init__(now_date, filename)
 
-    def drink(self, soups):
-        is_first_soup = True
-        for soup in soups:
+    def scrap_table(self):
+        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+
+        for idx, soup in enumerate(soups):
             rows = soup.find_all('tr')
-            all_programs = []
+
             for tr in rows:
                 hour = ""
                 minute = ""
 
-                # print(tr)
                 for td in tr.find_all('td'):
                     if td['class'][0] == 'schedul_con2':
-                        # print(td)
                         try:
                             hour = int(td.text.split(':')[0])
-                            if hour >= 24:
-                                hour = hour - 24
+                            hour = hour - 24 if hour >= 24 else hour
                             minute = td.text.split(':')[1]
+
                         except IndexError as e:
                             print(e)
                             exit(1)
+
                     elif td['class'][0] == 'schedul_con' and td.text != "":
-                        # print(td)
-                        prog_name = td.text.strip()
-                        program = '{} {}'.format(minute, prog_name)
-                        if is_first_soup:
-                            if hour != 4:
-                                if hour > 23:
-                                    hour = hour - 24
-                                all_programs.append([hour, program])
-                        else:
-                            if hour == 4:
-                                all_programs.append([hour, program])
+                        program = f'{minute} {td.text.strip()}'
+                        if idx == 0 and hour != 4:
+                            hour = hour - 24 if hour > 23 else hour
+                            self.hour.append(hour)
+                            self.program.append(program)
+
+                        elif idx == 1 and hour == 4:
+                            self.hour.append(hour)
+                            self.program.append(program)
+
                     else:
                         continue
 
-            self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-            is_first_soup = False
+        df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
+        df = self.get_dataframe(df)
+
+        return df
 
 
 class CchannelTVtable(TVtable):
@@ -365,98 +290,90 @@ class CchannelTVtable(TVtable):
     def __init__(self, now_date, filename='cchannel.csv'):
         super().__init__(now_date, filename)
 
-    def drink(self, soups):
-        is_first_soup = True
-        for soup in soups:
+    def scrap_table(self):
+        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+
+        for idx, soup in enumerate(soups):
             rows = soup.find_all('tr')
-            all_programs = []
+
             for tr in rows:
                 hour = ""
                 minute = ""
 
                 for td in tr.find_all('td', class_=['time', 'tit']):
                     if td['class'][0] == 'time':
-                        # print('processing time variable')
                         try:
                             hour = int(td.text.split(':')[0])
                             minute = td.text.split(':')[1]
+
                         except IndexError as e:
                             print(e)
                             exit(1)
-                        # print('hour = {}\nminutes={}'.format(hour, minute))
 
                     elif td['class'][0] == 'tit':
-                        # print('processing program name variable')
-                        # print(td.span.text)
-                        prog_name = td.span.text.strip()[:-1]
-                        program = '{} {}'.format(minute, prog_name)
-                        if is_first_soup:
-                            if hour > 4:
-                                all_programs.append([hour, program])
-                        else:
-                            if hour < 5:
-                                all_programs.append([hour, program])
+                        program = f'{minute} {td.span.text.strip()[:-1]}'
+
+                        if idx == 0 and hour > 4:
+                            self.hour.append(hour)
+                            self.program.append(program)
+
+                        elif idx == 1 and hour < 5:
+                            self.hour.append(hour)
+                            self.program.append(program)
                     else:
                         continue
 
-            self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-            is_first_soup = False
+        df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
+        df = self.get_dataframe(df)
+
+        return df
 
 
-def export_TVtable(*args, **kwargs):
+def export_tvtable(dfs, today, export_dir):
     is_first_dataframe = True
-    today = kwargs['today']
-    for df in args:
+    for df in dfs:
         if is_first_dataframe:
             is_first_dataframe = False
             final_df = df
         else:
             final_df = pd.merge(final_df, df, on='hour', how='outer')
+        print(final_df)
+
+    final_df.to_csv("before.csv")
 
     final_df = pd.concat([final_df.iloc[5:, :], final_df.iloc[:5, :]], axis=0)
     final_df = final_df[["CBS TV", "CTS TV", "CGN TV", "GoodTV", "Cchannel"]]
+
+    final_df.to_csv("processing.csv")
 
     final_df.reset_index(inplace=True)
     final_df.rename(columns={'index': 'hour'}, inplace=True)
     final_df['hour'] = final_df['hour'].apply(lambda x: str(x) + ':00')
     final_df.rename(columns={"CTS TV": "CTS 기독교TV", "hour": "시간"}, inplace=True)
 
-    final_df.to_excel(f'TVtable_{today}.xlsx', encoding='utf-16', sheet_name=today, index=False)
-    final_df.to_csv(f'TVtable_{today}.csv', encoding='utf-8', index=False)
+    final_df.to_csv("after.csv")
+
+    export_csv_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
+    export_xlsx_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
+
+
+def tv_class_gen(class_, today):
+    myclass = class_(today)
+    return myclass.scrap_table()
 
 
 def main(today):
-    goodtv = GoodTVtable(today)
-    soups = goodtv.get_soup()
-    goodtv.drink(soups)
-    goodtv_df = goodtv.get_dataframe()
-
-    ctstv = CTSTVtable(today)
-    soups = ctstv.get_soup()
-    ctstv.drink(soups)
-    cts_df = ctstv.get_dataframe()
-
-    cgntv = CGNTVtable(today)
-    soups = cgntv.get_soup()
-    cgntv.drink(soups)
-    cgn_df = cgntv.get_dataframe()
-
-    cchannel = CchannelTVtable(today)
-    soups = cchannel.get_soup()
-    cchannel.drink(soups)
-    cchannel_df = cchannel.get_dataframe()
-
-    cbstv = CBSTVtable(today)
-    soups = cbstv.get_soup()
-    cbstv.drink(soups)
-    cbs_df = cbstv.get_dataframe()
-
-    export_TVtable(goodtv_df, cgn_df, cts_df, cbs_df, cchannel_df, today=today)
+    tv_df = []
+    tv_df.append(tv_class_gen(GoodTVtable, today))
+    tv_df.append(tv_class_gen(CTSTVtable, today))
+    tv_df.append(tv_class_gen(CGNTVtable, today))
+    tv_df.append(tv_class_gen(CchannelTVtable, today))
+    tv_df.append(tv_class_gen(CBSTVtable, today))
+    export_tvtable(tv_df, today=today, export_dir='TVschedule')
 
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--date', required=False, type=str,
-                        default=datetime.today().strftime("%Y-%m-%d"), help='date to extract information')
+    parser.add_argument('-d', '--date', required=False, type=str, default=datetime.today().strftime("%Y-%m-%d"), help='date to extract information')
     values = parser.parse_args()
     main(values.date)
