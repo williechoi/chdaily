@@ -173,16 +173,16 @@ class FullGospelSermon(Sermon):
                                 txt_url = ""
                         except AttributeError as e:
                             txt_url = ""
+                        if sermon_date != "":
+                            self.sermon_date.append(sermon_date)
+                            self.sermon_title.append(sermon_title)
+                            self.bible_chapter.append(bible_chapter)
+                            self.sermon_pastor.append(self.pastor_name)
+                            self.sermon_url.append(txt_url)
+                            self.scrapped_article += 1
 
-                        self.sermon_date.append(sermon_date)
-                        self.sermon_title.append(sermon_title)
-                        self.bible_chapter.append(bible_chapter)
-                        self.sermon_pastor.append(self.pastor_name)
-                        self.sermon_url.append(txt_url)
-
-                        self.scrapped_article += 1
-                        if self.scrapped_article >= self.article_limit:
-                            raise StopIteration
+                            if self.scrapped_article >= self.article_limit:
+                                raise StopIteration
 
                 self.scrapped_page += 1
 
@@ -204,7 +204,7 @@ class FullGospelSermon(Sermon):
             main_title = soup.find('span', class_='viewTitle').get_text(strip=True)
         except AttributeError:
             main_title = ""
-
+        sub_title = ""
         try:
             articles = soup.find("span", class_="viewText")
             for article in articles.find_all('p'):
@@ -219,7 +219,6 @@ class FullGospelSermon(Sermon):
             body_text = '\n'.join(main_body)
         except AttributeError:
             body_text = ""
-            sub_title = ""
 
         main_text = merge_all_text(main_title=main_title, sub_title=sub_title, body_text=body_text)
         export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text), export_dir=self.pastor_name)
@@ -361,7 +360,7 @@ class TheGreenSermon(Sermon):
 
                             try:
                                 txt_url = urljoin(self.base_url, sermon_tag.a.get('href'))
-                                if self.scrap_sermon(txt_url) is not None:
+                                if self.scrap_sermon(txt_url, sermon_title, bible_chapter) is not None:
                                     self.downloaded_file += 1
                                 else:
                                     txt_url = ""
@@ -370,6 +369,7 @@ class TheGreenSermon(Sermon):
                                 txt_url = ""
 
                             self.sermon_date.append(sermon_date)
+                            self.bible_chapter.append(bible_chapter)
                             self.sermon_title.append(sermon_title)
                             self.sermon_pastor.append(self.pastor_name)
                             self.sermon_url.append(txt_url)
@@ -388,23 +388,10 @@ class TheGreenSermon(Sermon):
             export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name, secondary="주일설교분석파일", export_dir=self.export_dir)
 
 
-    def scrap_sermon(self, sermon_url):
+    def scrap_sermon(self, sermon_url, main_title, bible_chapter):
         soup = get_single_soup(sermon_url)
         if soup is None:
             return None
-
-        try:
-            sermon_info = soup.find_all('th', scope='row')
-            for info in sermon_info:
-                infotxt = info.get_text(strip=True)
-                print(infotxt)
-                if infotxt.startswith("설교제목"):
-                    main_title = info.next_sibling.get_text(strip=True)
-                elif infotxt.startswith("설교본문"):
-                    bible_chapter = info.next_sibling.get_text(strip=True)
-        except AttributeError:
-            main_title = "푸른교회 설교"
-            bible_chapter = ""
 
         try:
             main_body = []
@@ -428,7 +415,7 @@ class TheGreenSermon(Sermon):
 #     church_name = "경향교회"
 #     base_url = "http://www.ghpc.or.kr"
 #     sub_url = "archives/category/sun01/page/{}"
-#     export_dir = f'sermon/{pastor_name}'
+#     export_dir = f'sermon\\{pastor_name}'
 #
 #     def __init__(self, page_num, isduplicateallowed):
 #         super().__init__(page_num, isduplicateallowed)

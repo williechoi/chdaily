@@ -27,6 +27,8 @@ from datetime import datetime
 from datetime import timedelta
 import pandas as pd
 import re
+import time
+from chdaily_general import *
 
 
 class TVtable:
@@ -52,7 +54,7 @@ class TVtable:
         driver.get(self.now_url)
 
         today_soup = BeautifulSoup(driver.page_source, 'lxml')
-
+        time.sleep(3)
         driver.implicitly_wait(3)
         driver.get(self.next_url)
 
@@ -366,41 +368,39 @@ class CchannelTVtable(TVtable):
         super().__init__(now_date, filename)
 
     def drink(self, soups):
-        is_first_soup = True
-        for soup in soups:
-            rows = soup.find_all('tr')
+        for idx, soup in enumerate(soups):
+            # print(idx)
             all_programs = []
-            for tr in rows:
-                hour = ""
-                minute = ""
+            if idx == 1:
+                soup = get_single_soup(self.next_url)
+            table = soup.find('tbody', id='ajaxLoad')
+            rows = table.find_all('tr')
 
-                for td in tr.find_all('td', class_=['time', 'tit']):
-                    if td['class'][0] == 'time':
-                        # print('processing time variable')
-                        try:
-                            hour = int(td.text.split(':')[0])
-                            minute = td.text.split(':')[1]
-                        except IndexError as e:
-                            print(e)
-                            exit(1)
-                        # print('hour = {}\nminutes={}'.format(hour, minute))
+            for row in rows:
+                try:
+                    hhmm = row.find('td', class_='time').get_text(strip=True)
+                    hour = int(hhmm.split(':')[0])
+                    minute = hhmm.split(':')[1]
+                except AttributeError as e:
+                    print(e)
+                    hour = 99
+                    minute = 99
 
-                    elif td['class'][0] == 'tit':
-                        # print('processing program name variable')
-                        # print(td.span.text)
-                        prog_name = td.span.text.strip()[:-1]
-                        program = '{} {}'.format(minute, prog_name)
-                        if is_first_soup:
-                            if hour > 4:
-                                all_programs.append([hour, program])
-                        else:
-                            if hour < 5:
-                                all_programs.append([hour, program])
-                    else:
-                        continue
+                try:
+                    prog_name = row.find('td', class_='tit').find('span', class_='txt1').get_text(strip=True).replace('|', '')
+                    program = '{} {}'.format(minute, prog_name)
+                    # print(f'{idx}, {hour}, {program}')
+                    if idx == 0:
+                        if hour > 4:
+                            all_programs.append([hour, program])
+                    elif idx == 1:
+                        if hour < 5:
+                            all_programs.append([hour, program])
+                except AttributeError as e:
+                    print(e)
+                    program = '{} {}'.format(minute, "error occurred")
 
             self.data.append(pd.DataFrame(all_programs, columns=['hour', self.name]))
-            is_first_soup = False
 
 
 def export_TVtable(*args, **kwargs):
@@ -452,6 +452,7 @@ def main(today):
     cbs_df = cbstv.get_dataframe()
 
     export_TVtable(goodtv_df, cgn_df, cts_df, cbs_df, cchannel_df, today=today)
+    print('timetable ended')
 
 
 if __name__ == "__main__":
