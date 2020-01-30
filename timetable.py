@@ -17,16 +17,9 @@
 
 """
 
-from bs4 import BeautifulSoup
-import requests
+
 import argparse
-from urllib.parse import urljoin
-import os
-from selenium import webdriver
-from datetime import datetime
 from datetime import timedelta
-import pandas as pd
-import re
 from chdaily_general import *
 
 
@@ -38,9 +31,8 @@ class TVtable:
     name = 'TV'
     is_00_to_24 = True
     export_dir = 'TVtable'
-    BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 
-    def __init__(self, now_date, filename='noname.csv'):
+    def __init__(self, now_date):
         # date information
         self.now_date = datetime.strptime(now_date, "%Y-%m-%d").date()
         self.next_date = self.now_date + timedelta(days=1)
@@ -48,8 +40,6 @@ class TVtable:
         # url information
         self.now_url = urljoin(self.base_url_pc, self.sub_url_pc.format(self.now_date.strftime('%Y-%m-%d')))
         self.next_url = urljoin(self.base_url_pc, self.sub_url_pc.format(self.next_date.strftime('%Y-%m-%d')))
-        self.data = []
-        self.filename = filename
 
         # data information
         self.hour = []
@@ -70,8 +60,8 @@ class CBSTVtable(TVtable):
     name = 'CBS TV'
     is_00_to_24 = False
 
-    def __init__(self, now_date, filename='cbstv.csv'):
-        super().__init__(now_date, filename)
+    def __init__(self, now_date):
+        super().__init__(now_date)
 
     def scrap_table(self):
         soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
@@ -123,8 +113,8 @@ class CTSTVtable(TVtable):
     name = 'CTS TV'
     is_00_to_24 = True
 
-    def __init__(self, now_date, filename='ctstv.csv'):
-        super().__init__(now_date, filename)
+    def __init__(self, now_date):
+        super().__init__(now_date)
 
     def scrap_table(self):
         soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
@@ -179,8 +169,8 @@ class CGNTVtable(TVtable):
     name = 'CGN TV'
     is_00_to_24 = True
 
-    def __init__(self, now_date, filename='cgntv.csv'):
-        super().__init__(now_date, filename)
+    def __init__(self, now_date):
+        super().__init__(now_date)
         self.now_url = urljoin(self.base_url_mobile, self.sub_url_mobile.format(self.now_date.strftime('%Y-%m-%d')))
         self.next_url = urljoin(self.base_url_mobile, self.sub_url_mobile.format(self.next_date.strftime('%Y-%m-%d')))
 
@@ -235,8 +225,8 @@ class GoodTVtable(TVtable):
     name = 'GoodTV'
     is_00_to_24 = False
 
-    def __init__(self, now_date, filename='goodtv.csv'):
-        super().__init__(now_date, filename)
+    def __init__(self, now_date):
+        super().__init__(now_date)
 
     def scrap_table(self):
         soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
@@ -287,8 +277,8 @@ class CchannelTVtable(TVtable):
     name = 'Cchannel'
     is_00_to_24 = True
 
-    def __init__(self, now_date, filename='cchannel.csv'):
-        super().__init__(now_date, filename)
+    def __init__(self, now_date):
+        super().__init__(now_date)
 
     def scrap_table(self):
         soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
@@ -337,21 +327,13 @@ def export_tvtable(dfs, today, export_dir):
             final_df = df
         else:
             final_df = pd.merge(final_df, df, on='hour', how='outer')
-        print(final_df)
-
-    final_df.to_csv("before.csv")
 
     final_df = pd.concat([final_df.iloc[5:, :], final_df.iloc[:5, :]], axis=0)
     final_df = final_df[["CBS TV", "CTS TV", "CGN TV", "GoodTV", "Cchannel"]]
-
-    final_df.to_csv("processing.csv")
-
     final_df.reset_index(inplace=True)
     final_df.rename(columns={'index': 'hour'}, inplace=True)
     final_df['hour'] = final_df['hour'].apply(lambda x: str(x) + ':00')
     final_df.rename(columns={"CTS TV": "CTS 기독교TV", "hour": "시간"}, inplace=True)
-
-    final_df.to_csv("after.csv")
 
     export_csv_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
     export_xlsx_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
