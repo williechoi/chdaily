@@ -179,14 +179,19 @@ class CGNTVtable(TVtable):
 
         for idx, soup in enumerate(soups):
             [s.extract() for s in soup('em')]
-            rows = soup.find_all('ul', class_='pgr_sch_list')
+            table = soup.find('ul', class_='pgr_sch_list').find_all('li')
 
-            for tr in rows:
-                hour = ""
-                minute = ""
-                program = ""
+            # return none if TV schedule does not exist
+            if table is None:
+                print("No schedule")
+                return None
 
-                for li in tr.find_all('li'):
+            else:
+                for li in table:
+                    hour = ""
+                    minute = ""
+                    program = ""
+
                     hhmm = li.strong.text
                     try:
                         hour = int(hhmm.split(':')[0])
@@ -284,34 +289,38 @@ class CchannelTVtable(TVtable):
         soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
 
         for idx, soup in enumerate(soups):
-            rows = soup.find_all('tr')
+            table = soup.find('tbody', id="ajaxLoad")
+            rows = table.find_all('tr')
 
-            for tr in rows:
-                hour = ""
-                minute = ""
+            # return None if TV schedule does not exist
+            if len(rows) == 1:
+                print("no schedule")
+                return None
 
-                for td in tr.find_all('td', class_=['time', 'tit']):
-                    if td['class'][0] == 'time':
-                        try:
-                            hour = int(td.text.split(':')[0])
-                            minute = td.text.split(':')[1]
+            else:
+                for tr in rows:
+                    for td in tr.find_all('td', class_=['time', 'tit']):
+                        if td['class'][0] == 'time':
+                            try:
+                                hour = int(td.text.split(':')[0])
+                                minute = td.text.split(':')[1]
 
-                        except IndexError as e:
-                            print(e)
-                            exit(1)
+                            except IndexError as e:
+                                print(e)
+                                exit(1)
 
-                    elif td['class'][0] == 'tit':
-                        program = f'{minute} {td.span.text.strip()[:-1]}'
+                        elif td['class'][0] == 'tit':
+                            program = f'{minute} {td.span.text.strip()[:-1]}'
 
-                        if idx == 0 and hour > 4:
-                            self.hour.append(hour)
-                            self.program.append(program)
+                            if idx == 0 and hour > 4:
+                                self.hour.append(hour)
+                                self.program.append(program)
 
-                        elif idx == 1 and hour < 5:
-                            self.hour.append(hour)
-                            self.program.append(program)
-                    else:
-                        continue
+                            elif idx == 1 and hour < 5:
+                                self.hour.append(hour)
+                                self.program.append(program)
+                        else:
+                            continue
 
         df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
         df = self.get_dataframe(df)

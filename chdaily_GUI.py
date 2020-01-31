@@ -47,7 +47,7 @@ def open_TVtable():
     tvtable_window.iconbitmap('favicon.ico')
     tvtable_canvas = tk.Canvas(tvtable_window, height=400, width=WIDTH)
     tvtable_canvas.pack()
-    myfont = font.Font(family="한컴 윤고딕 240", size=12)
+    myfont = font.Font(family="맑은 고딕", size=12)
 
     tv_upper_frame = tk.Frame(tvtable_window)
     tv_upper_frame.place(relx=0.02, rely=0.02, relwidth=frm_width, relheight=frm_height)
@@ -111,7 +111,7 @@ def open_chdaily():
     url_label.place(relx=0.05, rely=0.2, relwidth=lbl_width, relheight=lbl_height)
     url_entry = tk.Entry(chdaily_window, text='url 입력')
     url_entry.place(relx=0.3, rely=0.2, relwidth=entry_width, relheight=entry_height)
-    myfont = font.Font(family="한컴 윤고딕 240", size=12)
+    myfont = font.Font(family="맑은 고딕", size=12)
 
     kw_label = tk.Label(chdaily_window, text="키워드를 입력하세요: ")
     kw_label.place(relx=0.05, rely=0.4, relwidth=lbl_width, relheight=lbl_height)
@@ -156,7 +156,7 @@ def run_chdaily_basic(url, kw, order=1):
             cb.main(url=url, keyword=kw, order=order)
 
         except ValueError:
-            tk.messagebox.showinfo("Error", "order variable should be integer larger than 0!")
+            tk.messagebox.showinfo("Error", "order variable should be an positive integer (>0)!")
 
 
 def open_sermon():
@@ -186,7 +186,7 @@ def open_sermon():
     sermon_window.iconbitmap('favicon.ico')
     sermon_canvas = tk.Canvas(sermon_window, height=HEIGHT, width=WIDTH)
     sermon_canvas.pack()
-    myfont = font.Font(family="한컴 윤고딕 240", size=12)
+    myfont = font.Font(family="맑은 고딕", size=12)
 
     sermon_upper_frame = tk.Frame(sermon_window)
     sermon_upper_frame.place(relx=0.02, rely=0.02, relwidth=frm_width, relheight=frm_height)
@@ -200,7 +200,7 @@ def open_sermon():
     c_allowduplicates = tk.Checkbutton(sermon_upper_frame, text="이미 다운받은 자료라도 중복해서 다운로드하기", variable=is_duplicates_allowed, anchor='sw')
     c_allowduplicates.place(relx=0.04, rely=0.38, relwidth=0.60, relheight=0.16)
 
-    pgnum_label = tk.Label(sermon_lower_frame, text="스크랩할 페이지 갯수를 선택하세요", anchor='nw')
+    pgnum_label = tk.Label(sermon_lower_frame, text="스크랩할 페이지 수를 선택하세요", anchor='nw')
     pgnum_label.place(relx=0.04, rely=0.04, relwidth=frm_width, relheight=0.18)
     pgnum_entry = tk.Spinbox(sermon_lower_frame, from_=1, to=50, textvariable=page_num)
     pgnum_entry.place(relx=0.50, rely=0.04, relwidth=0.20, relheight=0.16)
@@ -253,7 +253,7 @@ def main():
     company_label = tk.Label(root, image=company_image)
     company_label.place(relx=0.05, rely=0.4, relwidth=0.4, relheight=0.1)
 
-    myfont = font.Font(family="한컴 윤고딕 240", size=15)
+    myfont = font.Font(family="맑은 고딕", size=15)
 
     right_frame = tk.Frame(root)
     right_frame.place(relx=0.52, rely=0.05, relwidth=0.45, relheight=0.90)
