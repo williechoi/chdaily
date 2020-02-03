@@ -1,8 +1,10 @@
-import chdaily_basic as cb
 import argparse
 import os
-import pandas as pd
 import time
+
+import pandas as pd
+
+import chdaily_basic as cb
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 

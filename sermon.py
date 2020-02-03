@@ -1,15 +1,5 @@
-from bs4 import BeautifulSoup
-import requests
 import argparse
-from urllib.parse import urljoin
-import os
-from selenium import webdriver
-from datetime import datetime
-from datetime import timedelta
-import pandas as pd
-import re
-from tqdm import tqdm
-import time
+
 from chdaily_general import *
 
 
@@ -50,7 +40,6 @@ class Sermon:
 
 
 class MannaSermon(Sermon):
-
     pastor_name = "김병삼"
     church_name = "만나교회"
     base_url = "http://www.manna.or.kr"
@@ -101,7 +90,9 @@ class MannaSermon(Sermon):
                         for a_tag in sermon_resource.find_all('a'):
                             if a_tag.img['alt'] == "문서보기":
                                 hwp_url = urljoin(self.base_url, a_tag.get('href'))
-                                export_binary_file(hwp_url, header=article_num, primary=sermon_title, secondary=self.pastor_name, extname='hwp', export_dir=self.export_dir)
+                                export_binary_file(hwp_url, header=article_num, primary=sermon_title,
+                                                   secondary=self.pastor_name, extname='hwp',
+                                                   export_dir=self.export_dir)
                                 self.downloaded_file += 1
                     except AttributeError:
                         hwp_url = ""
@@ -123,12 +114,14 @@ class MannaSermon(Sermon):
             pass
 
         finally:
-            df = series_to_dataframe([self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url], column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
-            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name, secondary="주일설교분석파일", export_dir=self.export_dir)
+            df = series_to_dataframe(
+                [self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url],
+                column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
+            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name,
+                            secondary="주일설교분석파일", export_dir=self.export_dir)
 
 
 class FullGospelSermon(Sermon):
-
     pastor_name = "조용기"
     church_name = "순복음교회"
     base_url = "http://www.fgnews.co.kr"
@@ -197,8 +190,11 @@ class FullGospelSermon(Sermon):
             print('iteration stopped because of limit!')
 
         finally:
-            df = series_to_dataframe([self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url], column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
-            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name, secondary="주일설교분석파일", export_dir=self.export_dir)
+            df = series_to_dataframe(
+                [self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url],
+                column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
+            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name,
+                            secondary="주일설교분석파일", export_dir=self.export_dir)
 
     def scrap_sermon(self, sermon_url):
         soup = get_single_soup(sermon_url)
@@ -231,13 +227,13 @@ class FullGospelSermon(Sermon):
             pass
 
         main_text = merge_all_text(main_title=main_title, sub_title=sub_title, body_text=body_text)
-        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text), export_dir=self.export_dir)
+        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text),
+                        export_dir=self.export_dir)
 
         return 1
 
 
 class RiverSideSermon(Sermon):
-
     pastor_name = "김명혁"
     church_name = "강변교회"
     base_url = "http://www.kbpc.kr/jbcgi/board/"
@@ -260,18 +256,18 @@ class RiverSideSermon(Sermon):
                     for idx, val in enumerate(cols):
                         if val.get_text(strip=True) == "김명혁 목사":
                             try:
-                                sermon_title = cols[idx-1].get_text(strip=True)
+                                sermon_title = cols[idx - 1].get_text(strip=True)
                             except AttributeError:
                                 sermon_title = ""
 
                             try:
-                                sermon_date = cols[idx+2].get_text(strip=True)
+                                sermon_date = cols[idx + 2].get_text(strip=True)
                                 article_num = date_to_num(sermon_date)
                             except AttributeError:
                                 sermon_date = "1900-01-01"
                                 article_num = 99999999
 
-                            txt_url = urljoin(self.base_url, cols[idx-1].div.a.get('href'))
+                            txt_url = urljoin(self.base_url, cols[idx - 1].div.a.get('href'))
                             if self.scrap_sermon(txt_url, sermon_title) is not None:
                                 self.downloaded_file += 1
                             else:
@@ -292,8 +288,11 @@ class RiverSideSermon(Sermon):
             pass
 
         finally:
-            df = series_to_dataframe([self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url], column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
-            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name, secondary="주일설교분석파일", export_dir=self.export_dir)
+            df = series_to_dataframe(
+                [self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url],
+                column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
+            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name,
+                            secondary="주일설교분석파일", export_dir=self.export_dir)
 
     def scrap_sermon(self, sermon_url, main_title):
         soup = get_single_soup(sermon_url)
@@ -323,12 +322,12 @@ class RiverSideSermon(Sermon):
 
         self.bible_chapter.append(bible_chapter)
         main_text = merge_all_text(main_title=main_title, sub_title=bible_chapter, body_text=body_text)
-        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text), export_dir=self.export_dir)
+        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text),
+                        export_dir=self.export_dir)
         return 1
 
 
 class TheGreenSermon(Sermon):
-
     pastor_name = "조성노"
     church_name = "푸른교회"
     base_url = "http://thegreen.or.kr"
@@ -404,9 +403,11 @@ class TheGreenSermon(Sermon):
             pass
 
         finally:
-            df = series_to_dataframe([self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url], column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
-            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name, secondary="주일설교분석파일", export_dir=self.export_dir)
-
+            df = series_to_dataframe(
+                [self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url],
+                column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
+            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name,
+                            secondary="주일설교분석파일", export_dir=self.export_dir)
 
     def scrap_sermon(self, sermon_url, sermon_title, bible_chapter):
         soup = get_single_soup(sermon_url)
@@ -426,12 +427,12 @@ class TheGreenSermon(Sermon):
             pass
 
         main_text = merge_all_text(main_title=sermon_title, sub_title=bible_chapter, body_text=body_text)
-        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text), export_dir=self.export_dir)
+        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text),
+                        export_dir=self.export_dir)
         return 1
 
 
 class GHPCSermon(Sermon):
-
     pastor_name = "석기현"
     church_name = "경향교회"
     base_url = "http://www.ghpc.or.kr"
@@ -451,7 +452,6 @@ class GHPCSermon(Sermon):
             for soup in soup_generator(self.page_num, page_url):
                 table = soup.find("div", class_="post_ajax_tm")
                 article_num = "19000101"
-
 
                 rows = table.find_all("div", class_="row")
                 for row in rows:
@@ -476,7 +476,9 @@ class GHPCSermon(Sermon):
                                     article_num = date_to_num(sermon_date)
 
                                 if re.search(ghre_title, sermon_info):
-                                    sermon_title = re.findall(ghre_title, sermon_info)[0].strip().replace("“", "").replace("”", "")
+                                    sermon_title = re.findall(ghre_title, sermon_info)[0].strip().replace("“",
+                                                                                                          "").replace(
+                                        "”", "")
 
                                 if re.search(ghre_bible, sermon_info):
                                     bible_chapter = re.findall(ghre_bible, sermon_info)[0].replace("/", "").strip()
@@ -507,8 +509,11 @@ class GHPCSermon(Sermon):
             pass
 
         finally:
-            df = series_to_dataframe([self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url], column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
-            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name, secondary="주일설교분석파일", export_dir=self.export_dir)
+            df = series_to_dataframe(
+                [self.sermon_date, self.sermon_title, self.bible_chapter, self.sermon_pastor, self.sermon_url],
+                column_name=['date', 'title', 'bible_chapter', 'pastor', 'url'])
+            export_csv_file(df, header=datetime.today().strftime('%Y%m%d'), primary=self.pastor_name,
+                            secondary="주일설교분석파일", export_dir=self.export_dir)
 
     def scrap_sermon(self, sermon_url, sermon_title, bible_chapter):
         soup = get_single_soup(sermon_url)
@@ -533,7 +538,8 @@ class GHPCSermon(Sermon):
             pass
 
         main_text = merge_all_text(main_title=sermon_title, sub_title=bible_chapter, body_text=body_text)
-        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text), export_dir=self.export_dir)
+        export_txt_file(text=main_text, keyword=self.pastor_name, size=count_page(main_text),
+                        export_dir=self.export_dir)
         return 1
 
 
@@ -579,7 +585,8 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
     parser.add_argument('-p', '--pastor', required=True, type=str, help='pastor whose sermon is to be downloaded')
     parser.add_argument('-n', '--number', required=False, type=int, default=1, help='number of pages you want to scrap')
-    parser.add_argument('-d', '--allowduplicates', required=False, default=True, type=bool, help='whether or not allow downloading duplicates')
+    parser.add_argument('-d', '--allowduplicates', required=False, default=True, type=bool,
+                        help='whether or not allow downloading duplicates')
     parser.add_argument('-l', '--limit', required=False, type=int, default=99999, help='set scrap limit')
     args = parser.parse_args()
     main(name=args.pastor, number=int(args.number), allowduplicates=args.allowduplicates, limit=args.limit)

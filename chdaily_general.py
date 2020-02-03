@@ -1,12 +1,14 @@
 import os
-from selenium import webdriver
-from bs4 import BeautifulSoup
-import pandas as pd
 import re
-from datetime import datetime
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse, urljoin
+from datetime import datetime, timedelta
+
+import pandas as pd
 import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
 from tqdm import tqdm
+
 
 def selenium(url):
     try:
