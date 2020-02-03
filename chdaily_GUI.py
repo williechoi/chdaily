@@ -3,6 +3,7 @@ import tkinter.font as font
 from datetime import datetime
 from tkinter import messagebox
 from urllib.parse import urlparse
+import logging
 
 from dateutil.parser import parse
 
@@ -13,6 +14,20 @@ import timetable as tb
 HEIGHT = 400
 WIDTH = 900
 VALID_URLS = ["www.christiandaily.co.kr", "kr.christianitydaily.com", "www.newsis.com"]
+
+mylogger = logging.getLogger(__name__)
+mylogger.setLevel(logging.INFO)
+
+myformatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+
+file_handler = logging.FileHandler('tmp.log')
+file_handler.setFormatter(myformatter)
+
+stream_handler = logging.StreamHandler()
+stream_handler.setFormatter(myformatter)
+
+mylogger.addHandler(file_handler)
+mylogger.addHandler(stream_handler)
 
 
 def is_valid(url):
@@ -136,6 +151,7 @@ def open_chdaily():
 def run_timetable(year, month, day):
     maybe_datetime = "-".join([year, month, day])
     try:
+        mylogger.info('will search tv timetable on {}'.format(maybe_datetime))
         maybe_datetime_in_datetime = parse(maybe_datetime)
         if (maybe_datetime_in_datetime - datetime.today()).days > 3 or maybe_datetime_in_datetime.year - datetime.today().year < -2:
             raise ValueError
@@ -149,11 +165,12 @@ def run_chdaily_basic(url, kw, order=1):
         tk.messagebox.showinfo("Error", "You entered wrong URL! Please try again!")
 
     else:
+        mylogger.info('will search url: {} keyword: {} order: {}'.format(url, kw, order))
         try:
-            a = int(order)
-            if a < 1:
+            int_order = int(order)
+            if int_order < 1:
                 raise ValueError
-            cb.main(url=url, keyword=kw, order=order)
+            cb.main(url=url, keyword=kw, order=int_order)
 
         except ValueError:
             tk.messagebox.showinfo("Error", "order variable should be an positive integer (>0)!")
@@ -219,6 +236,7 @@ def open_sermon():
     def change_pastor(*args):
         pastor_name_ = pastor_options[pastor_name_w_church.get()]
         pastor_name.set(pastor_name_)
+        mylogger.info('pastor name has been changed to  {}'.format(pastor_name_))
 
     pastor_name_w_church.trace('w', change_pastor)
 
@@ -227,6 +245,7 @@ def open_sermon():
 
 
 def run_sermon(pastor_name, page_num_s, allowduplicates, limit_num):
+    mylogger.info('will search pastor {}\'s sermons of {} pages: limit number {}'.format(pastor_name, page_num_s, limit_num))
     try:
         page_num = int(page_num_s)
         limit_num = int(limit_num)
@@ -242,12 +261,12 @@ def run_sermon(pastor_name, page_num_s, allowduplicates, limit_num):
 
 
 def main():
-
     root = tk.Tk()
     root.title("기독일보 어플리케이션")
     root.iconbitmap('favicon.ico')
     canvas = tk.Canvas(root, height=HEIGHT, width=WIDTH)
     canvas.pack()
+    mylogger.info('Application started!')
 
     company_image = tk.PhotoImage(file='company_CI.png')
     company_label = tk.Label(root, image=company_image)
