@@ -18,11 +18,12 @@ from tqdm import tqdm
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHDAILY_URLS = {
-    "KR-CHDAILY": "http://www.christiandaily.co.kr",
+    "KR-CHDAILY": "https://www.christiandaily.co.kr",
     "US-CHDAILY": "http://kr.christianitydaily.com",
     "KR-NEWSIS": "http://www.newsis.com"
 }
 EMAIL_RE = re.compile(r'\({0,1}[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}\){0,1}', flags=re.UNICODE)
+
 
 class Chdaily:
     original_url = "http://www.christiandaily.co.kr"
@@ -237,7 +238,7 @@ class Chdaily_US(Chdaily):
 
 
 class Chdaily_KR(Chdaily):
-    original_url = "http://www.christiandaily.co.kr"
+    original_url = "https://www.christiandaily.co.kr"
     country = "South Korea"
     name = "한국 기독일보"
     
@@ -312,7 +313,7 @@ class Chdaily_KR(Chdaily):
 
 
 class NewsIs(Chdaily):
-    original_url = "http://www.newsis.com"
+    original_url = "https://www.newsis.com"
     country = "South Korea"
     name = "뉴시스"
 
@@ -370,12 +371,28 @@ def main(**kwargs):
     url = kwargs['url']
     keyword = kwargs['keyword']
     order = kwargs['order']
-    logging.basicConfig(filename='tmp.log', format='%(asctime)s %(message)s')
-    logging.warning('----------- web scraping started -------------')
+
+
+    mylogger = logging.getLogger(__name__)
+    mylogger.setLevel(logging.INFO)
+
+    myformatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+
+    file_handler = logging.FileHandler('tmp.log')
+    file_handler.setFormatter(myformatter)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(myformatter)
+
+    mylogger.addHandler(file_handler)
+    mylogger.addHandler(stream_handler)
+
+    mylogger.info('url is: {}\nkeyword is: {}\norder is: {}'.format(url, keyword, order))
+    mylogger.info('type: url is {}\nkeyword is: {}\norder is: {}'.format(type(url), type(keyword), type(order)))
 
     main_url = urlparse(url).netloc
 
-    if main_url == urlparse(CHDAILY_URLS['KR-CHDAILY']).netloc:
+    if main_url in urlparse(CHDAILY_URLS['KR-CHDAILY']).netloc:
         mychdaily = Chdaily_KR(url, keyword, order)
     elif main_url == urlparse(CHDAILY_URLS['US-CHDAILY']).netloc:
         mychdaily = Chdaily_US(url, keyword, order)
@@ -384,6 +401,7 @@ def main(**kwargs):
     else:
         print("You entered wrong URL. please try again!")
         exit(1)
+    mylogger.info('mychdaily is set to {}'.format(mychdaily.__class__.__name__))
 
     soup = mychdaily.get_soup()
     mychdaily.drink(soup)
