@@ -163,31 +163,41 @@ class Chdaily_US(Chdaily):
     def get_body_text(self, soup):
         article = soup.find('article')
         body_result = article.find('div', class_='article-txt')
-        body_text_list = []
 
-        # body_elements_without_p = body_result.find(text=True, recursive=False)
-        # if body_elements_without_p:
-        #     body_text_list.append(body_elements_without_p.get_text(strip=True))
+        # remove unwanted texts (e.g., image captions)
+        [s.extract() for s in body_result('div')]
 
-        body_elements = body_result.find_all('p')
-        for body in body_elements:
-            if 'Like Us' in body.text or body.text == u'\xa0':
+        # split body texts into elements of a list
+        raw_body_texts = body_result.get_text('\n', strip=True).split('\n')
+
+        # remove unnecessary texts (blank line, Like Us on Facebook) from the list
+        # and combine all texts into the single text (main_body)
+        for body in raw_body_texts:
+            body = re.sub(r'[\n\t\r\xa0]', '', body).strip()
+            if body in ['Like Us on', 'Facebook']:
                 continue
-            sentence = body.text.strip().replace('\n', '')
-            body_text_list.append(sentence)
-
-        self.main_body = '\n'.join(body_text_list)
+            elif body == '':
+                continue
+            else:
+                self.main_body = '\n'.join([self.main_body, body])
 
     def get_reporter_name(self, soup):
         article = soup.find('article')
+
+        # remove unwanted texts (e.g., image captions)
         [s.extract() for s in article('em')]
+
+        # extract reporter name from body
         try:
             self.reporter = article.find('p', class_='art-writer fl').get_text().strip()
         except AttributeError:
             self.reporter = None
+
+        # remove email information
         if re.search(EMAIL_RE, self.reporter):
             self.reporter = re.sub(EMAIL_RE, "", self.reporter).strip()
 
+        # if the name does not contain the word "기자", attach it
         if not self.reporter.endswith('기자'):
             self.reporter = self.reporter + ' 기자'
 
