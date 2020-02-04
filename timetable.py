@@ -286,7 +286,6 @@ class CchannelTVtable(TVtable):
     def __init__(self, now_date):
         super().__init__(now_date)
 
-
     def scrap_table(self):
         soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
 
