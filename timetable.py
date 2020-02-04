@@ -244,6 +244,7 @@ class GoodTVtable(TVtable):
                 hour = ""
                 minute = ""
 
+                # meaningless comment: will be deleted in the future
                 for td in tr.find_all('td'):
                     if td['class'][0] == 'schedul_con2':
                         try:
