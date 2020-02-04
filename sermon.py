@@ -388,7 +388,6 @@ class TheGreenSermon(Sermon):
                                 txt_url = ""
 
                             self.sermon_date.append(sermon_date)
-                            self.bible_chapter.append(bible_chapter)
                             self.sermon_title.append(sermon_title)
                             self.bible_chapter.append(bible_chapter)
                             self.sermon_pastor.append(self.pastor_name)
