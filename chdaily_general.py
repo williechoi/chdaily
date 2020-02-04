@@ -104,7 +104,6 @@ def num_to_date(num):
     return '-'.join([num[:4], num[4:6], num[6:]])
 
 
-
 def series_to_dataframe(columns, column_name=None):
     series_list = []
 
