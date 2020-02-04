@@ -111,8 +111,6 @@ def series_to_dataframe(columns, column_name=None):
         series_list.append(pd.Series(column))
 
     df = pd.concat(series_list, axis=1)
-    if df is None:
-        print('df is None!')
 
     if column_name is not None:
         df.columns = column_name
