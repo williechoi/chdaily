@@ -82,7 +82,7 @@ class Chdaily:
         file_name = os.path.join(self.export_dir, file_name)
         with open(file_name, 'w', encoding='utf-8') as fout:
             fout.writelines(self.main_text)
-        logging.warning("[{}] {} keyword: {} is now scraped".format(self.article_number, self.name, self.keyword))
+        logging.info("[{}] {} keyword: {} is now scraped".format(self.article_number, self.name, self.keyword))
 
     def get_valid_filename(self, s):
         return re.sub(r'[\\/\:*"<>\|%\$\^&\n]', '', s)

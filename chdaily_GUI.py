@@ -155,9 +155,11 @@ def run_timetable(year, month, day):
         maybe_datetime_in_datetime = parse(maybe_datetime)
         if (maybe_datetime_in_datetime - datetime.today()).days > 3 or maybe_datetime_in_datetime.year - datetime.today().year < -2:
             raise ValueError
-        tb.main(maybe_datetime)
+
     except ValueError as e:
         tk.messagebox.showinfo("Error", "유효한 날짜를 입력하세요")
+
+    tb.main(maybe_datetime)
 
 
 def run_chdaily_basic(url, kw, order=1):

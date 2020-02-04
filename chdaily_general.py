@@ -8,6 +8,7 @@ import requests
 from bs4 import BeautifulSoup
 from selenium import webdriver
 from tqdm import tqdm
+import time
 
 
 def selenium(url):
@@ -18,8 +19,13 @@ def selenium(url):
         driver.implicitly_wait(3)
         driver.get(url)
         soup = BeautifulSoup(driver.page_source, 'lxml')
+        time.sleep(3)
+
+        # print('soup is well prepared')
     except:
+        # print('soup is not well prepared')
         soup = None
+
     finally:
         driver.close()
         return soup
