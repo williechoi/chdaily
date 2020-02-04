@@ -5,21 +5,8 @@
     coded by Hyungsuk Choi. ⓒ All rights reserved.
 """
 
-from bs4 import BeautifulSoup
-import requests
 import argparse
-from urllib.parse import urljoin, urlparse
-import os
-import pathlib
-from tqdm import tqdm
-import re
-from selenium import webdriver
-import selenium.common.exceptions
-import msvcrt
-import logging
-import time
-import pandas as pd
-from datetime import datetime
+
 from chdaily_general import *
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))

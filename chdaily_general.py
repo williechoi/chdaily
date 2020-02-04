@@ -1,12 +1,15 @@
 import os
-from selenium import webdriver
-from bs4 import BeautifulSoup
-import pandas as pd
 import re
-from datetime import datetime
-from urllib.parse import urljoin, urlparse
+from urllib.parse import urlparse, urljoin
+from datetime import datetime, timedelta
+
+import pandas as pd
 import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
 from tqdm import tqdm
+import time
+
 
 def selenium(url):
     try:
@@ -16,8 +19,13 @@ def selenium(url):
         driver.implicitly_wait(3)
         driver.get(url)
         soup = BeautifulSoup(driver.page_source, 'lxml')
+        time.sleep(3)
+
+        # print('soup is well prepared')
     except:
+        # print('soup is not well prepared')
         soup = None
+
     finally:
         driver.close()
         return soup
@@ -44,7 +52,16 @@ def export_csv_file(df, header, primary, secondary, export_dir):
     file_name = get_valid_filename(file_name)
     file_path = get_file_path(export_dir, file_name)
 
-    df.to_csv(file_path, index=False, sep=',')
+    df.to_csv(file_path, index=False, encoding='utf-8', sep=',')
+
+
+def export_xlsx_file(df, header, primary, secondary, export_dir):
+    export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), export_dir)
+    file_name = f'{header}_{secondary}_{primary}.xlsx'
+    file_name = get_valid_filename(file_name)
+    file_path = get_file_path(export_dir, file_name)
+
+    df.to_excel(file_path, index=False, encoding='utf-16', sheet_name=primary)
 
 
 def export_binary_file(url, header, primary, secondary, extname, export_dir):
@@ -87,10 +104,12 @@ def num_to_date(num):
     return '-'.join([num[:4], num[4:6], num[6:]])
 
 
-def series_to_dataframe(cols, column_name=None):
+
+def series_to_dataframe(columns, column_name=None):
     series_list = []
-    for col in cols:
-        series_list.append(pd.Series(col))
+
+    for column in columns:
+        series_list.append(pd.Series(column))
 
     df = pd.concat(series_list, axis=1)
     if df is None:

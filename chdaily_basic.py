@@ -5,26 +5,25 @@
     made by Hyungsuk Choi. ⓒ All rights reserved.
 """
 
-from bs4 import BeautifulSoup
-import requests
 import argparse
-from urllib.parse import urljoin, urlparse
-import os
-import pathlib
-from tqdm import tqdm
-import re
-from selenium import webdriver
-import selenium.common.exceptions
-import msvcrt
 import logging
+import os
+import re
+from urllib.parse import urljoin, urlparse
+
+import requests
+from bs4 import BeautifulSoup
+from selenium import webdriver
+from tqdm import tqdm
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 CHDAILY_URLS = {
-    "KR-CHDAILY": "http://www.christiandaily.co.kr",
+    "KR-CHDAILY": "https://www.christiandaily.co.kr",
     "US-CHDAILY": "http://kr.christianitydaily.com",
     "KR-NEWSIS": "http://www.newsis.com"
 }
 EMAIL_RE = re.compile(r'\({0,1}[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*@[0-9a-zA-Z]([-_.]?[0-9a-zA-Z])*.[a-zA-Z]{2,3}\){0,1}', flags=re.UNICODE)
+
 
 class Chdaily:
     original_url = "http://www.christiandaily.co.kr"
@@ -83,7 +82,7 @@ class Chdaily:
         file_name = os.path.join(self.export_dir, file_name)
         with open(file_name, 'w', encoding='utf-8') as fout:
             fout.writelines(self.main_text)
-        logging.warning("[{}] {} keyword: {} is now scraped".format(self.article_number, self.name, self.keyword))
+        logging.info("[{}] {} keyword: {} is now scraped".format(self.article_number, self.name, self.keyword))
 
     def get_valid_filename(self, s):
         return re.sub(r'[\\/\:*"<>\|%\$\^&\n]', '', s)
@@ -165,31 +164,41 @@ class Chdaily_US(Chdaily):
     def get_body_text(self, soup):
         article = soup.find('article')
         body_result = article.find('div', class_='article-txt')
-        body_text_list = []
 
-        # body_elements_without_p = body_result.find(text=True, recursive=False)
-        # if body_elements_without_p:
-        #     body_text_list.append(body_elements_without_p.get_text(strip=True))
+        # remove unwanted texts (e.g., image captions)
+        [s.extract() for s in body_result('div')]
 
-        body_elements = body_result.find_all('p')
-        for body in body_elements:
-            if 'Like Us' in body.text or body.text == u'\xa0':
+        # split body texts into elements of a list
+        raw_body_texts = body_result.get_text('\n', strip=True).split('\n')
+
+        # remove unnecessary texts (blank line, Like Us on Facebook) from the list
+        # and combine all texts into the single text (main_body)
+        for body in raw_body_texts:
+            body = re.sub(r'[\n\t\r\xa0]', '', body).strip()
+            if body in ['Like Us on', 'Facebook']:
                 continue
-            sentence = body.text.strip().replace('\n', '')
-            body_text_list.append(sentence)
-
-        self.main_body = '\n'.join(body_text_list)
+            elif body == '':
+                continue
+            else:
+                self.main_body = '\n'.join([self.main_body, body])
 
     def get_reporter_name(self, soup):
         article = soup.find('article')
+
+        # remove unwanted texts (e.g., image captions)
         [s.extract() for s in article('em')]
+
+        # extract reporter name from body
         try:
             self.reporter = article.find('p', class_='art-writer fl').get_text().strip()
         except AttributeError:
             self.reporter = None
+
+        # remove email information
         if re.search(EMAIL_RE, self.reporter):
             self.reporter = re.sub(EMAIL_RE, "", self.reporter).strip()
 
+        # if the name does not contain the word "기자", attach it
         if not self.reporter.endswith('기자'):
             self.reporter = self.reporter + ' 기자'
 
@@ -224,12 +233,12 @@ class Chdaily_US(Chdaily):
             self.main_text += self.sub_title + '\n' + '\n'
         if self.main_body:
             self.main_text += self.main_body
-        if self.reporter:
+        if self.reporter and self.reporter.strip() != "기자":
             self.main_text = self.main_text + '/' + self.reporter
 
 
 class Chdaily_KR(Chdaily):
-    original_url = "http://www.christiandaily.co.kr"
+    original_url = "https://www.christiandaily.co.kr"
     country = "South Korea"
     name = "한국 기독일보"
     
@@ -299,12 +308,12 @@ class Chdaily_KR(Chdaily):
             self.main_text += self.sub_title + '\n' + '\n'
         if self.main_body:
             self.main_text += self.main_body
-        if self.reporter:
+        if self.reporter and self.reporter.strip() != "기자":
             self.main_text = self.main_text + '/' + self.reporter
 
 
 class NewsIs(Chdaily):
-    original_url = "http://www.newsis.com"
+    original_url = "https://www.newsis.com"
     country = "South Korea"
     name = "뉴시스"
 
@@ -362,12 +371,28 @@ def main(**kwargs):
     url = kwargs['url']
     keyword = kwargs['keyword']
     order = kwargs['order']
-    logging.basicConfig(filename='tmp.log', format='%(asctime)s %(message)s')
-    logging.warning('----------- web scraping started -------------')
+
+
+    mylogger = logging.getLogger(__name__)
+    mylogger.setLevel(logging.INFO)
+
+    myformatter = logging.Formatter('%(levelname)s:%(name)s:%(message)s')
+
+    file_handler = logging.FileHandler('tmp.log')
+    file_handler.setFormatter(myformatter)
+
+    stream_handler = logging.StreamHandler()
+    stream_handler.setFormatter(myformatter)
+
+    mylogger.addHandler(file_handler)
+    mylogger.addHandler(stream_handler)
+
+    mylogger.info('url is: {}\nkeyword is: {}\norder is: {}'.format(url, keyword, order))
+    mylogger.info('type: url is {}\nkeyword is: {}\norder is: {}'.format(type(url), type(keyword), type(order)))
 
     main_url = urlparse(url).netloc
 
-    if main_url == urlparse(CHDAILY_URLS['KR-CHDAILY']).netloc:
+    if main_url in urlparse(CHDAILY_URLS['KR-CHDAILY']).netloc:
         mychdaily = Chdaily_KR(url, keyword, order)
     elif main_url == urlparse(CHDAILY_URLS['US-CHDAILY']).netloc:
         mychdaily = Chdaily_US(url, keyword, order)
@@ -376,6 +401,7 @@ def main(**kwargs):
     else:
         print("You entered wrong URL. please try again!")
         exit(1)
+    mylogger.info('mychdaily is set to {}'.format(mychdaily.__class__.__name__))
 
     soup = mychdaily.get_soup()
     mychdaily.drink(soup)
