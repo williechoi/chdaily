@@ -33,10 +33,11 @@ class TVtable:
     is_00_to_24 = True
     export_dir = 'TVtable'
 
-    def __init__(self, now_date):
+    def __init__(self, now_date, driver):
         # date information
         self.now_date = datetime.strptime(now_date, "%Y-%m-%d").date()
         self.next_date = self.now_date + timedelta(days=1)
+        self.driver = driver
 
         # url information
         self.now_url = urljoin(self.base_url_pc, self.sub_url_pc.format(self.now_date.strftime('%Y-%m-%d')))
@@ -61,11 +62,11 @@ class CBSTVtable(TVtable):
     name = 'CBS TV'
     is_00_to_24 = False
 
-    def __init__(self, now_date):
-        super().__init__(now_date)
+    def __init__(self, now_date, driver):
+        super().__init__(now_date, driver)
 
     def scrap_table(self):
-        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+        soups = [get_single_soup(self.driver, self.now_url), get_single_soup(self.driver, self.next_url)]
 
         for idx, soup in enumerate(soups):
             rows = soup.find('div', id='time_data').find_all('tr')
@@ -114,11 +115,11 @@ class CTSTVtable(TVtable):
     name = 'CTS TV'
     is_00_to_24 = True
 
-    def __init__(self, now_date):
-        super().__init__(now_date)
+    def __init__(self, now_date, driver):
+        super().__init__(now_date, driver)
 
     def scrap_table(self):
-        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+        soups = [get_single_soup(self.driver, self.now_url), get_single_soup(self.driver, self.next_url)]
 
         for idx, soup in enumerate(soups):
             [s.extract() for s in soup('div', class_='remark')]
@@ -170,13 +171,13 @@ class CGNTVtable(TVtable):
     name = 'CGN TV'
     is_00_to_24 = True
 
-    def __init__(self, now_date):
-        super().__init__(now_date)
+    def __init__(self, now_date, driver):
+        super().__init__(now_date, driver)
         self.now_url = urljoin(self.base_url_mobile, self.sub_url_mobile.format(self.now_date.strftime('%Y-%m-%d')))
         self.next_url = urljoin(self.base_url_mobile, self.sub_url_mobile.format(self.next_date.strftime('%Y-%m-%d')))
 
     def scrap_table(self):
-        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+        soups = [get_single_soup(self.driver, self.now_url), get_single_soup(self.driver, self.next_url)]
 
         for idx, soup in enumerate(soups):
             [s.extract() for s in soup('em')]
@@ -231,11 +232,11 @@ class GoodTVtable(TVtable):
     name = 'GoodTV'
     is_00_to_24 = False
 
-    def __init__(self, now_date):
-        super().__init__(now_date)
+    def __init__(self, now_date, driver):
+        super().__init__(now_date, driver)
 
     def scrap_table(self):
-        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+        soups = [get_single_soup(self.driver, self.now_url), get_single_soup(self.driver, self.next_url)]
 
         for idx, soup in enumerate(soups):
             rows = soup.find_all('tr')
@@ -284,11 +285,11 @@ class CchannelTVtable(TVtable):
     name = 'Cchannel'
     is_00_to_24 = True
 
-    def __init__(self, now_date):
-        super().__init__(now_date)
+    def __init__(self, now_date, driver):
+        super().__init__(now_date, driver)
 
     def scrap_table(self):
-        soups = [get_single_soup(self.now_url), get_single_soup(self.next_url)]
+        soups = [get_single_soup(self.driver, self.now_url), get_single_soup(self.driver, self.next_url)]
 
         for idx, soup in enumerate(soups):
             table = soup.find('tbody', id="ajaxLoad")
@@ -330,39 +331,59 @@ class CchannelTVtable(TVtable):
         return df
 
 
-def export_tvtable(dfs, today, export_dir):
+def export_tvtable(dfs, labels, today, export_dir):
     is_first_dataframe = True
-    for df in dfs:
+    columns = []
+    for idx, df in enumerate(dfs):
+        columns.append(labels[idx])
         if is_first_dataframe:
             is_first_dataframe = False
             final_df = df
+
         else:
             final_df = pd.merge(final_df, df, on='hour', how='outer')
 
     final_df = pd.concat([final_df.iloc[5:, :], final_df.iloc[:5, :]], axis=0)
-    final_df = final_df[["CBS TV", "CTS TV", "CGN TV", "GoodTV", "Cchannel"]]
+    final_df = final_df[columns]
     final_df.reset_index(inplace=True)
     final_df.rename(columns={'index': 'hour'}, inplace=True)
     final_df['hour'] = final_df['hour'].apply(lambda x: str(x) + ':00')
-    final_df.rename(columns={"CTS TV": "CTS 기독교TV", "hour": "시간"}, inplace=True)
+    final_df.rename(columns={"hour": "시간"}, inplace=True)
+
+    if "CTS TV" in final_df.columns:
+        final_df.rename(columns={"CTS TV": "CTS 기독교TV"}, inplace=True)
 
     export_csv_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
     export_xlsx_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
 
 
-def tv_class_gen(class_, today):
-    myclass = class_(today)
-    return myclass.scrap_table()
+def main(target_date):
 
-
-def main(today):
     tv_df = []
-    tv_df.append(tv_class_gen(GoodTVtable, today))
-    tv_df.append(tv_class_gen(CTSTVtable, today))
-    tv_df.append(tv_class_gen(CGNTVtable, today))
-    tv_df.append(tv_class_gen(CchannelTVtable, today))
-    tv_df.append(tv_class_gen(CBSTVtable, today))
-    export_tvtable(tv_df, today=today, export_dir='TVschedule')
+    labels = []
+    driver = webdriver.Chrome('C:\\chromedriver.exe')
+
+    goodtvtable = GoodTVtable(target_date, driver)
+    tv_df.append(goodtvtable.scrap_table())
+    labels.append(goodtvtable.name)
+
+    ctstvtable = CTSTVtable(target_date, driver)
+    tv_df.append(ctstvtable.scrap_table())
+    labels.append(ctstvtable.name)
+
+    cgntvtable = CGNTVtable(target_date, driver)
+    tv_df.append(cgntvtable.scrap_table())
+    labels.append(cgntvtable.name)
+
+    cchanneltvtable = CchannelTVtable(target_date, driver)
+    tv_df.append(cchanneltvtable.scrap_table())
+    labels.append(cchanneltvtable.name)
+
+    cbstvtable = CBSTVtable(target_date, driver)
+    tv_df.append(cbstvtable.scrap_table())
+    labels.append(cbstvtable.name)
+
+    export_tvtable(tv_df, labels, today=target_date, export_dir='TVschedule')
 
 
 if __name__ == "__main__":

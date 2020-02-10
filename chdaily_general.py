@@ -11,34 +11,11 @@ from tqdm import tqdm
 import time
 
 
-def selenium(url):
-    try:
-        if not is_valid_url(url):
-            raise ValueError
-        driver = webdriver.Chrome('C:\\chromedriver.exe')
-        driver.implicitly_wait(3)
-        driver.get(url)
-        soup = BeautifulSoup(driver.page_source, 'lxml')
-        time.sleep(3)
-
-        # print('soup is well prepared')
-    except:
-        # print('soup is not well prepared')
-        soup = None
-
-    finally:
-        driver.close()
-        return soup
-
-
-def get_single_soup(url):
-    return selenium(url)
-
-
-def soup_generator(num, iterable_url, start=1):
-    for idx in range(start, num + start):
-        url = iterable_url.format(idx)
-        yield selenium(url)
+def get_single_soup(driver, url):
+    driver.get(url)
+    time.sleep(7)
+    soup = BeautifulSoup(driver.page_source, 'lxml')
+    return soup
 
 
 def is_valid_url(url):
