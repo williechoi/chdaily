@@ -24,7 +24,7 @@ def is_valid_url(url):
 
 
 def export_csv_file(df, header, primary, secondary, export_dir):
-    export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), export_dir)
+    export_dir = os.path.join(os.path.join(os.environ['USERPROFILE'], 'Desktop'), export_dir)
     file_name = f'{header}_{secondary}_{primary}.csv'
     file_name = get_valid_filename(file_name)
     file_path = get_file_path(export_dir, file_name)
@@ -33,7 +33,7 @@ def export_csv_file(df, header, primary, secondary, export_dir):
 
 
 def export_xlsx_file(df, header, primary, secondary, export_dir):
-    export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), export_dir)
+    export_dir = os.path.join(os.path.join(os.environ['USERPROFILE'], 'Desktop'), export_dir)
     file_name = f'{header}_{secondary}_{primary}.xlsx'
     file_name = get_valid_filename(file_name)
     file_path = get_file_path(export_dir, file_name)
@@ -42,7 +42,7 @@ def export_xlsx_file(df, header, primary, secondary, export_dir):
 
 
 def export_binary_file(url, header, primary, secondary, extname, export_dir):
-    export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), export_dir)
+    export_dir = os.path.join(os.path.join(os.environ['USERPROFILE'], 'Desktop'), export_dir)
     file_name = f'{header}_{secondary}_{primary}.{extname}'
     file_name = get_valid_filename(file_name)
     file_path = get_file_path(export_dir, file_name)
@@ -59,7 +59,7 @@ def export_binary_file(url, header, primary, secondary, extname, export_dir):
 
 
 def export_txt_file(text, keyword, size, export_dir):
-    export_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), export_dir)
+    export_dir = os.path.join(os.path.join(os.environ['USERPROFILE'], 'Desktop'), export_dir)
     file_name = f'{keyword}({size:2.1f}).txt'
     file_name = get_valid_filename(file_name)
     file_path = get_file_path(export_dir, file_name)
