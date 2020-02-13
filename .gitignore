@@ -14,3 +14,7 @@ gpp.py
 venv
 build
 dist
+.spec
+.log
+simple_scraping.py
+websearch.py
