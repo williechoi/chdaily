@@ -18,3 +18,4 @@ dist
 .log
 simple_scraping.py
 websearch.py
+!requirements.txt
