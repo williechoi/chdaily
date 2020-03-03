@@ -165,9 +165,9 @@ class CTSTVtable(TVtable):
 
 class CGNTVtable(TVtable):
     base_url_pc = "http://m.cgntv.net"
-    sub_url_pc = "center/programschedule.cgn?date={}"
+    sub_url_pc = "sch/klist.cgn?date={}"
     base_url_mobile = "http://m.cgntv.net"
-    sub_url_mobile = "center/programschedule.cgn?date={}"
+    sub_url_mobile = "sch/klist.cgn?date={}"
     name = 'CGN TV'
     is_00_to_24 = True
 
