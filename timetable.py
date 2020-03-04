@@ -190,33 +190,38 @@ class CGNTVtable(TVtable):
 
             else:
                 for li in table:
-                    hour = ""
-                    minute = ""
-                    program = ""
+                    # skip the first row
+                    if li.find('strong') is None:
+                        continue
 
-                    hhmm = li.strong.text
-                    try:
-                        hour = int(hhmm.split(':')[0])
-                        minute = hhmm.split(':')[1]
-                    except IndexError as e:
-                        print("index error occurred: {}".format(e))
-                        exit(1)
+                    else:
+                        hour = ""
+                        minute = ""
+                        program = ""
 
-                    try:
-                        prog_name = re.sub(r"([\t\n\r])", "", li.div.text.strip(), flags=re.UNICODE).replace('HD', '').strip()
-                        program = f'{minute} {prog_name}'
+                        hhmm = li.find('strong', class_='kst').get_text(strip=True)
+                        try:
+                            hour = int(hhmm.split(':')[0])
+                            minute = hhmm.split(':')[1]
+                        except IndexError as e:
+                            print("index error occurred: {}".format(e))
+                            exit(1)
 
-                    except AttributeError as e:
-                        print("Attribute Error occurred: {}".format(e))
-                        exit(1)
+                        try:
+                            prog_name = re.sub(r"([\t\n\r])", "", li.div.text.strip(), flags=re.UNICODE).replace('HD', '').strip()
+                            program = f'{minute} {prog_name}'
 
-                    if idx == 0 and hour > 4:
-                        self.hour.append(hour)
-                        self.program.append(program)
+                        except AttributeError as e:
+                            print("Attribute Error occurred: {}".format(e))
+                            exit(1)
 
-                    elif idx == 1 and hour < 5:
-                        self.hour.append(hour)
-                        self.program.append(program)
+                        if idx == 0 and hour > 4:
+                            self.hour.append(hour)
+                            self.program.append(program)
+
+                        elif idx == 1 and hour < 5:
+                            self.hour.append(hour)
+                            self.program.append(program)
 
         df = series_to_dataframe([self.hour, self.program], column_name=['hour', self.name])
         df = self.get_dataframe(df)
