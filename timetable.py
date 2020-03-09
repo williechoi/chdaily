@@ -393,6 +393,6 @@ def main(target_date):
 
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--date', required=False, type=str, default=datetime.today().strftime("%Y-%m-%d"), help='date to extract information')
+    parser.add_argument('-d', '--date', required=False, type=str, default=(datetime.today()+timedelta(days=1)).strftime("%Y-%m-%d"), help='date to extract information')
     values = parser.parse_args()
     main(values.date)
