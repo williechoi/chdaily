@@ -222,7 +222,7 @@ class FullGospelSermon(Sermon):
                 else:
                     main_body.append(article_text)
             body_text = '\n'.join(main_body)
-            
+
         except AttributeError:
             pass
 
