@@ -362,11 +362,12 @@ def export_tvtable(dfs, labels, today, export_dir):
     export_xlsx_file(final_df, header='TVtable', primary=today, secondary="요약정리", export_dir=export_dir)
 
 
-def main(target_date):
+def main(target_date, output_queue):
 
     tv_df = []
     labels = []
-    driver = webdriver.Chrome('C:\\chromedriver.exe')
+    chrome_dir = os.path.join(os.getcwd(), "chromedriver.exe")
+    driver = webdriver.Chrome(chrome_dir)
 
     goodtvtable = GoodTVtable(target_date, driver)
     tv_df.append(goodtvtable.scrap_table())
@@ -388,11 +389,14 @@ def main(target_date):
     tv_df.append(cbstvtable.scrap_table())
     labels.append(cbstvtable.name)
 
-    export_tvtable(tv_df, labels, today=target_date, export_dir='TVschedule')
+    output_queue.put([tv_df, labels])
+    driver.quit()
+    return
+
+    # export_tvtable(tv_df, labels, today=target_date, export_dir='TVschedule')
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser()
-    parser.add_argument('-d', '--date', required=False, type=str, default=(datetime.today()+timedelta(days=1)).strftime("%Y-%m-%d"), help='date to extract information')
-    values = parser.parse_args()
-    main(values.date)
+    print("이 파일은 단독으로 실행이 불가합니다.")
+    exit(1)
+

@@ -77,6 +77,6 @@ class TimeTableConfig(GuiConfig):
     def __init__(self):
         super().__init__()
         self.init_val = {
-            "output_dir": os.getcwd()
+            "output_dir": ""
         }
         self.filename = 'timetable.cfg'

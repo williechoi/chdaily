@@ -1,0 +1,1 @@
+C:\PythonData\Google_Automation\venv\Scripts\activate.bat && pyinstaller --onefile --add-data "img/*.*;img/" timetable_gui.py --noconfirm --windowed --icon=img\tvtable.ico
