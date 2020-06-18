@@ -389,6 +389,7 @@ def main(target_date):
     labels.append(cbstvtable.name)
 
     export_tvtable(tv_df, labels, today=target_date, export_dir='TVschedule')
+    driver.quit()
 
 
 if __name__ == "__main__":
